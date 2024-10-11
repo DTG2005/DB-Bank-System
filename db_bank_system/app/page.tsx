@@ -1,5 +1,4 @@
 import Image from "next/image";
-import NavBar from "./NavBar.js";
 
 /**
  * Renders the home page of the DB Bank application.
@@ -9,7 +8,6 @@ import NavBar from "./NavBar.js";
 export default function Home() {
   return (
     <>
-      <NavBar />
       <div className="flex flex-col justify-center items-center w-full h-screen bg-gradient-to-r from-gray-300 to-gray-500">
         <Image
           alt="DB Bank"
