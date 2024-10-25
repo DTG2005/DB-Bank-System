@@ -1,59 +1,70 @@
-import React from "react";
-import Image from "next/image";
+"use client"; 
 
-const NavBar = () => {
+import React from "react";
+import { useRouter } from 'next/navigation';
+import { Bell, HelpCircle, ChevronDown, Search } from 'lucide-react';
+
+const Navbar = ({ isScrolled }) => {
+  const router = useRouter(); 
+
+  const handleLoginClick = () => {
+    router.push('/login'); 
+  };
+
+  const handleSignUpClick = () => {
+    router.push('/signup'); 
+  };
+
   return (
-    <>
-      <nav className="bg-gray-100 p-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                {
-                  // TODO: Add logo
-                }
-                <Image
-                  className="h-8 w-8"
-                  src="https://tailwindui.com/img/logos/workflow-mark-indigo-500.svg"
-                  width={100}
-                  height={100}
-                  alt="Workflow"
-                />
-              </div>
+    <nav className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-lg' : 'bg-transparent'}`}>
+      <div className="container mx-auto">
+        <div className="flex items-center justify-between py-3 px-6">
+          <div className="flex items-center space-x-8">
+            <div className="text-2xl font-bold text-blue-700 flex items-center">
+              <span className="text-red-600">CBI</span> BANK
+            </div>
+            <div className="hidden md:flex space-x-6">
+              {['PERSONAL', 'Student', 'Employee'].map(item => (
+                <button key={item} className="text-gray-600 hover:text-blue-600 transition-colors flex items-center">
+                  {item} <ChevronDown className="ml-1 h-4 w-4" />
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <Search className="h-5 w-5 text-gray-600" />
+            </button>
+            <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <HelpCircle className="h-5 w-5 text-gray-600" />
+            </button>
+            <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <Bell className="h-5 w-5 text-gray-600" />
+            </button>
+            <div className="flex space-x-2">
+              <button onClick={handleLoginClick} className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition-colors">
+                Login
+              </button>
+              <button onClick={handleSignUpClick} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">
+                Sign Up
+              </button>
             </div>
           </div>
         </div>
-      </nav>
-      <nav className="bg-blue-800 p-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px">
-          <div className="flex items-center justify-between h-4">
-            <div className="flex items-center">
-              <div className="flex items-baseline space-x-4">
-                <a
-                  href="#"
-                  className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  Home
-                </a>
-                <a
-                  href="#"
-                  className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  About
-                </a>
-                <a
-                  href="#"
-                  className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  Contact
-                </a>
-              </div>
+        <div className="bg-blue-600">
+          <div className="container mx-auto px-6">
+            <div className="flex space-x-8 py-3 overflow-x-auto">
+              {['Accounts', 'Loans', 'Cards', 'University', 'Scholarships', 'Rewardz & Offers', 'Premium'].map(item => (
+                <button key={item} className="text-white hover:text-gray-200 transition-colors whitespace-nowrap">
+                  {item}
+                </button>
+              ))}
             </div>
           </div>
         </div>
-      </nav>
-    </>
+      </div>
+    </nav>
   );
 };
 
-export default NavBar;
+export default Navbar;
