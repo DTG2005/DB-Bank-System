@@ -1,52 +1,5 @@
-/**{
-  "personal_info": {
-    "full_name": "John Doe",
-    "date_of_birth": "1990-01-15",
-    "national_id": "123456789",
-    "citizenship": "US",
-    "residential_status": "permanent_resident"
-  },
-  "contact_info": {
-    "address": {
-      "street": "123 Main St",
-      "city": "New York",
-      "state": "NY",
-      "zip_code": "10001",
-      "country": "US"
-    },
-    "phone_number": "+1-123-456-7890",
-    "email": "john.doe@example.com"
-  },
-  "employment_info": {
-    "employment_status": "employed",
-    "occupation": "Software Engineer",
-    "employer_name": "TechCorp",
-    "employer_address": "456 Tech Park, New York, NY, 10002",
-    "monthly_income": 6000,
-    "years_at_job": 3
-  },
-  "financial_info": {
-    "bank_account": {
-      "account_number": "9876543210",
-      "bank_name": "National Bank"
-    },
-    "monthly_rent_or_mortgage": 1500,
-    "existing_loans": {
-      "total_loan_amount": 20000,
-      "monthly_payment": 500
-    },
-    "other_credit_cards": {
-      "total_credit_limit": 15000,
-      "current_balance": 5000
-    }
-  },
-  "consent": {
-    "accept_terms_and_conditions": true,
-    "signature": "John Doe"
-  }
-} */
-
 import { NextResponse } from "next/server";
+import { db } from "../../../../../lib/db";
 
 interface Address {
   street: string;
@@ -242,6 +195,27 @@ export async function POST(request: Request) {
     }
 
     // Placeholder for further processing (e.g., saving to the database)
+    // We don't need an ID since autoincrement is a thing
+    // What we do need is AccountID
+    const accnum = data.financial_info.bank_account?.account_number;
+
+    // Again, Credit Card number is autoincrement
+    // We need expiry date, which will be 4 years from issue, which is 4 years from now in month
+    const expiry = new Date();
+    expiry.setFullYear(expiry.getFullYear() + 4);
+    expiry.setMonth(expiry.getMonth() + 1);
+
+    // Credit Limit is a set const. Let's take 100,000
+    const creditLimit = 100000;
+
+    // Current Balance is initially
+    const currentBalance = creditLimit;
+
+    const query =
+      "INSERT INTO credit_cards (accnum, expiry, creditLimit, currentBalance) VALUES (?, ?, ?, ?)";
+    const values = [accnum, expiry, creditLimit, currentBalance];
+    await db.execute(query, values);
+
     return NextResponse.json(
       { message: "Application received and valid. Processing placeholder." },
       { status: 200 }
