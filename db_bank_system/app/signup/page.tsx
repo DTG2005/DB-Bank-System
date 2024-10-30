@@ -28,6 +28,18 @@ const Signup = () => {
       ...formData,
       [e.target.name]: e.target.value,
     });
+    console.log(formData);
+
+    //Send a POST request to /api/auth/register
+    //If successful, redirect to /login
+    //If not, display an error
+    fetch("/api/auth/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formData),
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {

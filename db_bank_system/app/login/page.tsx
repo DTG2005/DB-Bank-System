@@ -13,6 +13,50 @@ const Login: React.FC = () => {
   const handleLogin = () => {
     // Handle login logic
     console.log("Login attempted with:", { internetBankingId, password });
+
+    // Reset form fields
+    setInternetBankingId("");
+    setPassword("");
+
+    // Send an API call to /api/auth/login
+    // If successful, redirect to /dashboard
+    // Else show an alert for failure
+    try {
+      fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ internetBankingId, password }),
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(response.statusText);
+          }
+          return response.json();
+        })
+        .then((data) => {
+          if (data.success) {
+            // Redirect to /dashboard
+            window.location.href = "/dashboard";
+          } else {
+            alert(
+              "Login failed. Please check your internet banking ID and password."
+            );
+          }
+        })
+        .catch((error) => {
+          alert(
+            "Login failed. Please check your internet banking ID and password."
+          );
+          console.error(
+            "Error logging in:",
+            error.message || "An error occurred"
+          );
+        });
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (
