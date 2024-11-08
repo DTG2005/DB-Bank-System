@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   Bell,
   HelpCircle,
@@ -15,8 +15,8 @@ import {
   Building,
   Users,
   AtSign,
-} from 'lucide-react';
-import Navbar from './NavBar'; 
+} from "lucide-react";
+import Navbar from "./NavBar";
 
 const HomePage: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState<boolean>(false);
@@ -25,8 +25,8 @@ const HomePage: React.FC = () => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (
@@ -56,7 +56,8 @@ const HeroSection: React.FC = () => {
     },
     {
       title: "Fulfill your dream career",
-      description: "Empower your academic growth with hassle-free university loans",
+      description:
+        "Empower your academic growth with hassle-free university loans",
       buttonText: "Get Started",
       image: "/api/placeholder/600/400",
     },
@@ -74,8 +75,12 @@ const HeroSection: React.FC = () => {
       <div className="container mx-auto px-6">
         <div className="flex flex-col md:flex-row items-center justify-between">
           <div className="md:w-1/2 space-y-6">
-            <h1 className="text-5xl font-bold text-gray-900 leading-tight">{slides[activeSlide].title}</h1>
-            <p className="text-xl text-gray-600">{slides[activeSlide].description}</p>
+            <h1 className="text-5xl font-bold text-gray-900 leading-tight">
+              {slides[activeSlide].title}
+            </h1>
+            <p className="text-xl text-gray-600">
+              {slides[activeSlide].description}
+            </p>
             <div className="flex space-x-4">
               <button className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-lg transition-colors flex items-center">
                 {slides[activeSlide].buttonText}
@@ -101,18 +106,38 @@ const HeroSection: React.FC = () => {
 
 const FeaturedProducts: React.FC = () => {
   const products = [
-    { icon: CreditCard, title: "Credit Cards", description: "Exclusive rewards and benefits" },
-    { icon: Building, title: "Savings Account", description: "High interest rates" },
-    { icon: Gift, title: "Personal Loans", description: "Quick approval process" },
-    { icon: Percent, title: "Scholarships", description: "Attractive interest rates" },
+    {
+      icon: CreditCard,
+      title: "Credit Cards",
+      description: "Exclusive rewards and benefits",
+    },
+    {
+      icon: Building,
+      title: "Savings Account",
+      description: "High interest rates",
+    },
+    {
+      icon: Gift,
+      title: "Personal Loans",
+      description: "Quick approval process",
+    },
+    {
+      icon: Percent,
+      title: "Scholarships",
+      description: "Attractive interest rates",
+    },
   ];
 
   return (
     <div className="py-16 bg-white">
       <div className="container mx-auto px-6">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-gray-900">Featured Products</h2>
-          <p className="text-gray-600 mt-4">Discover our range of banking solutions</p>
+          <h2 className="text-3xl font-bold text-gray-900">
+            Featured Products
+          </h2>
+          <p className="text-gray-600 mt-4">
+            Discover our range of banking solutions
+          </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {products.map((product, index) => (
@@ -138,12 +163,12 @@ const PrivilegesSection: React.FC = () => {
   const privileges = [
     {
       icon: Gift,
-      title: "YES Rewardz",
+      title: "Ghotala Rewardz",
       description: "Join our exclusive rewards program",
     },
     {
       icon: Percent,
-      title: "YES Offers",
+      title: "Ghotala Offers",
       description: "Personalized offers curated for you",
     },
   ];
@@ -206,7 +231,9 @@ const DigitalBankingSection: React.FC = () => {
         <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl p-12 text-white">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-3xl font-bold mb-6">Experience Digital Banking</h2>
+              <h2 className="text-3xl font-bold mb-6">
+                Experience Digital Banking
+              </h2>
               <p className="text-blue-100 mb-8">
                 Bank anywhere, anytime with our secure digital banking solutions
               </p>
@@ -236,14 +263,18 @@ const SecurityAlert: React.FC = () => {
           <div className="flex items-center">
             <Shield className="h-6 w-6 mr-3 text-green-400" />
             <span>
-              DIAL <span className="text-green-400 font-bold">1930</span> FOR ONLINE FINANCIAL FRAUD
+              DIAL <span className="text-green-400 font-bold">1930</span> FOR
+              ONLINE FINANCIAL FRAUD
             </span>
           </div>
           <div className="flex items-center">
             <Phone className="h-6 w-6 mr-3 text-green-400" />
             <span>
-              Report cybercrime at{' '}
-              <a href="https://cybercrime.gov.in" className="text-green-400 hover:underline">
+              Report cybercrime at{" "}
+              <a
+                href="https://cybercrime.gov.in"
+                className="text-green-400 hover:underline"
+              >
                 WWW.CYBERCRIME.GOV.IN
               </a>
             </span>

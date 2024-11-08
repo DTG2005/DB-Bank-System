@@ -1,30 +1,77 @@
 "use client";
 
-import { useState } from 'react';
-import { Lock, Eye, EyeOff } from 'lucide-react';
-import Navbar from '../NavBar';
+import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 const Login: React.FC = () => {
-  const [internetBankingId, setInternetBankingId] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
+  const [internetBankingId, setInternetBankingId] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
 
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
   const handleLogin = () => {
     // Handle login logic
-    console.log('Login attempted with:', { internetBankingId, password });
+    console.log("Login attempted with:", { internetBankingId, password });
+
+    // Reset form fields
+    setInternetBankingId("");
+    setPassword("");
+
+    // Send an API call to /api/auth/login
+    // If successful, redirect to /dashboard
+    // Else show an alert for failure
+    try {
+      fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ internetBankingId, password }),
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(response.statusText);
+          }
+          return response.json();
+        })
+        .then((data) => {
+          if (data.success) {
+            // Redirect to /dashboard
+            window.location.href = "/dashboard";
+          } else {
+            alert(
+              "Login failed. Please check your internet banking ID and password."
+            );
+          }
+        })
+        .catch((error) => {
+          alert(
+            "Login failed. Please check your internet banking ID and password."
+          );
+          console.error(
+            "Error logging in:",
+            error.message || "An error occurred"
+          );
+        });
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar isScrolled={false} />
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <main className="container mx-auto px-6 py-24">
         <div className="max-w-lg mx-auto bg-white rounded-lg shadow-xl p-8">
-          <h2 className="text-3xl font-bold text-gray-900 text-center mb-6">Internet Banking Login</h2>
+          <h2 className="text-3xl font-bold text-gray-900 text-center mb-6">
+            Internet Banking Login
+          </h2>
           <div className="space-y-6">
             <div>
-              <label htmlFor="internetBankingId" className="block text-gray-700 mb-2">
+              <label
+                htmlFor="internetBankingId"
+                className="block text-gray-700 mb-2"
+              >
                 Internet Banking ID
               </label>
               <input
@@ -52,7 +99,11 @@ const Login: React.FC = () => {
                   className="absolute inset-y-0 right-3 flex items-center"
                   onClick={togglePasswordVisibility}
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5 text-gray-600" /> : <Eye className="h-5 w-5 text-gray-600" />}
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5 text-gray-600" />
+                  ) : (
+                    <Eye className="h-5 w-5 text-gray-600" />
+                  )}
                 </button>
               </div>
             </div>

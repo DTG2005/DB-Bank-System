@@ -6,29 +6,59 @@ import bcrypt from "bcryptjs";
 export async function POST(req: NextRequest) {
   try {
     const textBody = await req.text();
-    const { mobile, email, password } = JSON.parse(textBody);
+    const {
+      firstName,
+      lastName,
+      email,
+      password,
+      mobileNumber,
+      accountType,
+      address,
+      dob,
+      identificationNumber,
+    } = JSON.parse(textBody);
 
-    // Use ?? operator to replace undefined with null for SQL
-    const mobileValue = mobile ?? null;
-    console.log("email:" + email);
-    const emailValue = email === undefined ? null : email;
     const passwordValue = password ? await bcrypt.hash(password, 10) : null;
 
-    const createTableQuery =
-      "CREATE TABLE IF NOT EXISTS users (mobile VARCHAR(20), email VARCHAR(255), passwordValue VARCHAR(255))";
+    const createTableQuery = `
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        firstName VARCHAR(50),
+        lastName VARCHAR(50),
+        email VARCHAR(255),
+        password VARCHAR(255),
+        mobileNumber VARCHAR(20),
+        accountType VARCHAR(20),
+        address TEXT,
+        dob DATE,
+        identificationNumber VARCHAR(50)
+      )`;
     await db.execute(createTableQuery);
 
-    const query =
-      "INSERT INTO users (mobile, email, passwordValue) VALUES (?, ?, ?)";
-    const values = [mobileValue, emailValue, passwordValue];
-    await db.execute(query, values);
+    const insertQuery = `
+      INSERT INTO users (firstName, lastName, email, password, mobileNumber, accountType, address, dob, identificationNumber)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+    const values = [
+      firstName ?? null,
+      lastName ?? null,
+      email ?? null,
+      passwordValue,
+      mobileNumber ?? null,
+      accountType ?? null,
+      address ?? null,
+      dob ?? null,
+      identificationNumber ?? null,
+    ];
+
+    await db.execute(insertQuery, values);
 
     return NextResponse.json(
       { message: "User registered successfully!" },
       { status: 200 }
     );
   } catch (error) {
-    console.error(error); // Log the error to debug
+    console.error("Error registering user:", error); // Log the error to debug
     return NextResponse.json(
       { error: "Failed to register user." },
       { status: 500 }

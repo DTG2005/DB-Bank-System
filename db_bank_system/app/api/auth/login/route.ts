@@ -13,9 +13,9 @@ interface User {
 export async function POST(req: NextRequest) {
   try {
     const textBody = await req.text();
-    const { email, password } = JSON.parse(textBody);
+    const { BankingID, password } = JSON.parse(textBody);
 
-    if (!email || !password) {
+    if (!BankingID || !password) {
       return NextResponse.json(
         { error: "Email and password are required." },
         { status: 400 }
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     const query = "SELECT * FROM users WHERE email = ?";
 
     // Specify the type of the result as [User[] & RowDataPacket[], FieldPacket[]]
-    const [rows] = (await db.execute(query, [email])) as [
+    const [rows] = (await db.execute(query, [BankingID])) as [
       User[] & RowDataPacket[],
       FieldPacket[]
     ];
