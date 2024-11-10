@@ -27,16 +27,14 @@ const Login: React.FC = () => {
         if (!response.ok) throw new Error(response.statusText);
         return response.json();
       })
-      .then((data) => {
-        if (data.success) {
-          window.location.href = "/dashboard";
-        } else {
-          setError("Incorrect Internet Banking ID or Password.");
-        }
+      .then(() => {
+        window.location.href = "/dashboard";
       })
-      .catch((error) => {
+      .catch(() => {
         setIsLoading(false);
-        setError("Login failed. Please check your internet banking ID and password.");
+        setError(
+          "Login failed. Please check your internet banking ID and password."
+        );
       });
   };
 
@@ -44,11 +42,16 @@ const Login: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
       <main className="container mx-auto px-6 py-24">
         <div className="max-w-lg mx-auto bg-white rounded-xl shadow-lg p-10 space-y-6">
-          <h2 className="text-4xl font-bold text-blue-800 text-center">Internet Banking Login</h2>
+          <h2 className="text-4xl font-bold text-blue-800 text-center">
+            Internet Banking Login
+          </h2>
           {error && <p className="text-red-600 text-center">{error}</p>}
           <div className="space-y-6">
             <div>
-              <label htmlFor="internetBankingId" className="block text-gray-700 mb-2">
+              <label
+                htmlFor="internetBankingId"
+                className="block text-gray-700 mb-2"
+              >
                 Internet Banking ID
               </label>
               <input
@@ -86,15 +89,24 @@ const Login: React.FC = () => {
             </div>
             <button
               className={`w-full py-3 rounded-lg text-white transition-all flex justify-center items-center ${
-                isLoading ? "bg-blue-500 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+                isLoading
+                  ? "bg-blue-500 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700"
               }`}
               onClick={handleLogin}
               disabled={isLoading}
             >
-              {isLoading ? <Loader className="animate-spin h-5 w-5 text-white" /> : "Login"}
+              {isLoading ? (
+                <Loader className="animate-spin h-5 w-5 text-white" />
+              ) : (
+                "Login"
+              )}
             </button>
             <div className="text-center text-gray-500">
-              <a href="/forgot-password" className="underline hover:text-blue-700">
+              <a
+                href="/forgot-password"
+                className="underline hover:text-blue-700"
+              >
                 Forgot Password?
               </a>
               <span className="mx-2">|</span>
