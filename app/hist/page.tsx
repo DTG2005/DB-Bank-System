@@ -51,7 +51,7 @@ const TransactionHistory = () => {
       </form>
 
       {/* Display error if any */}
-      {error && <p className="text-red-600">{error}</p>}
+      {error && <p className="text-red-500">{error}</p>}
 
       {/* Transaction History Table */}
       {transactions.length > 0 && (
