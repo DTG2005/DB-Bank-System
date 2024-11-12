@@ -1,126 +1,238 @@
-import { NextApiRequest, NextApiResponse } from "next";
-import { db } from "../../../../lib/db"; // Adjust the path to your db connection module
-import { RowDataPacket, FieldPacket } from "mysql2"; // Adjust import as necessary
+import { NextRequest, NextResponse } from 'next/server';
+import { db } from "../../../../lib/db";  // Ensure this path is correct
+import { RowDataPacket, FieldPacket } from 'mysql2';
 
+// Enum to define transaction types
 enum TransactionType {
-  TRANSFER = "TRANSFER",
-  LOAN_DISBURSEMENT = "LOAN_DISBURSEMENT",
-  PAYMENT = "PAYMENT",
+  TRANSFER = 'TRANSFER',
+  WITHDRAW = 'WITHDRAW',
+  DEPOSIT = 'DEPOSIT',
 }
 
+// Interface for transaction details
 interface TransferDetails {
-  accountFrom: string;
-  accountTo: string;
+  senderAccountId: string;
+  senderName: string;
+  recipientAccountId: string;
   amount: number;
 }
 
-interface LoanDisbursementDetails {
-  loanAccountId: string;
-  loanAmount: number;
+interface WithdrawDetails {
+  accountId: string;
+  amount: number;
+  name: string;
 }
 
-interface PaymentDetails {
-  paymentAccountId: string;
-  paymentAmount: number;
+interface DepositDetails {
+  accountId: string;
+  amount: number;
+  name: string;
 }
 
-type TransactionDetails =
-  | TransferDetails
-  | LoanDisbursementDetails
-  | PaymentDetails;
+type TransactionDetails = TransferDetails | WithdrawDetails | DepositDetails;
 
-// Main transaction handling function
-async function handleTransaction(
-  transactionType: TransactionType,
-  details: TransactionDetails
-): Promise<void> {
+// Function to handle all transaction types
+async function handleTransaction(transactionType: TransactionType, details: TransactionDetails): Promise<string> {
   const connection = await db.getConnection();
+
   try {
-    await connection.beginTransaction(); // Start transaction
+    await connection.beginTransaction();
 
     switch (transactionType) {
-      case TransactionType.TRANSFER:
-        const { accountFrom, accountTo, amount } = details as TransferDetails;
+      case TransactionType.TRANSFER: {
+        const { senderAccountId, senderName, recipientAccountId, amount } = details as TransferDetails;
 
-        const [senderBalanceResult]: [RowDataPacket[], FieldPacket[]] =
-          await connection.query<RowDataPacket[]>(
-            "SELECT balance FROM accounts WHERE account_id = ?",
-            [accountFrom]
-          );
+        // 1. Validate sender account exists and name matches
+        const [senderResult]: [RowDataPacket[], FieldPacket[]] = await connection.query(
+          'SELECT * FROM Account WHERE AccountID = ?',
+          [senderAccountId]
+        );
 
-        // Validate the response
-        if (
-          !Array.isArray(senderBalanceResult) ||
-          senderBalanceResult.length === 0
-        ) {
-          throw new Error("Account not found or no balance available");
+        if (!senderResult || senderResult.length === 0) {
+          throw new Error('Sender account not found');
         }
 
-        const senderBalance = senderBalanceResult[0].balance; // Access the balance
+        const sender = senderResult[0];
+        const senderBranchId = sender.BranchID; // Get the BranchID from the Account table
 
-        if (senderBalance < amount) {
-          throw new Error("Insufficient funds");
+        // 2. Validate recipient account exists
+        const [recipientResult]: [RowDataPacket[], FieldPacket[]] = await connection.query(
+          'SELECT * FROM Account WHERE AccountID = ?',
+          [recipientAccountId]
+        );
+
+        if (!recipientResult || recipientResult.length === 0) {
+          throw new Error('Recipient account not found');
         }
 
-        // Deduct from sender
+        // 3. Check sender balance
+        if (sender.Balance < amount) {
+          throw new Error('Insufficient funds');
+        }
+
+        // 4. Perform transaction (debit sender, credit recipient)
+        const transactionDate = new Date();
+        const transactionDateFormatted = transactionDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+        const transactionTimeFormatted = transactionDate.toISOString().split('T')[1].split('.')[0]; // HH:MM:SS format
+
+        // Debit sender account
+        await connection.query('UPDATE Account SET Balance = Balance - ? WHERE AccountID = ?', [amount, senderAccountId]);
+        // Credit recipient account
+        await connection.query('UPDATE Account SET Balance = Balance + ? WHERE AccountID = ?', [amount, recipientAccountId]);
+
+        // Log the sender transaction
         await connection.query(
-          "UPDATE accounts SET balance = balance - ? WHERE account_id = ?",
-          [amount, accountFrom]
+          `INSERT INTO Transaction (AccountID, BranchID, TransactionType, Amount, Status, TransactionDate, TransactionTime, Description, TransactionFrom, TransactionTo) 
+           VALUES (?, ?, 'TRANSFER', ?, true, ?, ?, 'Transfer to recipient account', ?, ?)`,
+          [senderAccountId, senderBranchId, amount, transactionDateFormatted, transactionTimeFormatted, senderAccountId, recipientAccountId]
         );
 
-        // Add to receiver
-        await connection.query(
-          "UPDATE accounts SET balance = balance + ? WHERE account_id = ?",
-          [amount, accountTo]
-        );
+       
 
-        console.log(
-          `Transferred ${amount} from ${accountFrom} to ${accountTo}`
-        );
         break;
+      }
 
-      // Handle other transaction types as before...
+      case TransactionType.WITHDRAW: {
+        const { accountId, amount, name } = details as WithdrawDetails;
+
+        // 1. Validate account exists and fetch account details
+        const [accountResult]: [RowDataPacket[], FieldPacket[]] = await connection.query(
+          'SELECT * FROM Account WHERE AccountID = ?',
+          [accountId]
+        );
+
+        if (!accountResult || accountResult.length === 0) {
+          throw new Error('Account not found');
+        }
+
+        const account = accountResult[0];
+
+        // 2. Validate account holder name
+        if (account.AccountHolderName !== name) {
+          throw new Error('Account holder\'s name does not match');
+        }
+
+        // 3. Check balance
+        if (account.Balance < amount) {
+          throw new Error('Insufficient funds');
+        }
+
+        // 4. Retrieve BranchID from the Account table
+        const branchId = account.BranchID;
+
+        // 5. Perform withdrawal
+        await connection.query('UPDATE Account SET Balance = Balance - ? WHERE AccountID = ?', [amount, accountId]);
+
+        // Log the transaction
+        const transactionDate = new Date();
+        const transactionDateFormatted = transactionDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+        const transactionTimeFormatted = transactionDate.toISOString().split('T')[1].split('.')[0]; // HH:MM:SS format
+
+        await connection.query(
+          `INSERT INTO Transaction (AccountID, BranchID, TransactionType, Amount, Status, TransactionDate, TransactionTime, Description, TransactionFrom) 
+           VALUES (?, ?, 'WITHDRAW', ?, true, ?, ?, 'Withdraw from account', ?)`,
+          [accountId, branchId, amount, transactionDateFormatted, transactionTimeFormatted, accountId]
+        );
+
+        break;
+      }
+
+      case TransactionType.DEPOSIT: {
+        const { accountId, amount, name } = details as DepositDetails;
+
+        // 1. Validate account exists and fetch account details
+        const [accountResult]: [RowDataPacket[], FieldPacket[]] = await connection.query(
+          'SELECT * FROM Account WHERE AccountID = ?',
+          [accountId]
+        );
+
+        if (!accountResult || accountResult.length === 0) {
+          throw new Error('Account not found');
+        }
+
+        const account = accountResult[0];
+
+        // 2. Validate account holder name
+        if (account.AccountHolderName !== name) {
+          throw new Error('Account holder\'s name does not match');
+        }
+
+        // 3. Retrieve BranchID from the Account table
+        const branchId = account.BranchID;
+
+        // 4. Perform deposit
+        await connection.query('UPDATE Account SET Balance = Balance + ? WHERE AccountID = ?', [amount, accountId]);
+
+        // Log the transaction
+        const transactionDate = new Date();
+        const transactionDateFormatted = transactionDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+        const transactionTimeFormatted = transactionDate.toISOString().split('T')[1].split('.')[0]; // HH:MM:SS format
+
+        await connection.query(
+          `INSERT INTO Transaction (AccountID, BranchID, TransactionType, Amount, Status, TransactionDate, TransactionTime, Description, TransactionTo) 
+           VALUES (?, ?, 'DEPOSIT', ?, true, ?, ?, 'Deposit to account', ?)`,
+          [accountId, branchId, amount, transactionDateFormatted, transactionTimeFormatted, accountId]
+        );
+
+        break;
+      }
 
       default:
-        throw new Error("Invalid transaction type");
+        throw new Error('Invalid transaction type');
     }
 
-    await connection.commit(); // Commit transaction
-    console.log("Transaction successful");
-  } catch (error: unknown) {
-    await connection.rollback(); // Rollback on error
+    await connection.commit();
 
-    if (error instanceof Error) {
-      console.error("Transaction failed:", error.message);
-    } else {
-      console.error("Transaction failed with an unknown error:", error);
-    }
+    // Return success message after committing
+    return "Transaction successful!";
+  } catch (error) {
+    await connection.rollback();
+    throw error;
   } finally {
-    connection.release(); // Release connection
+    connection.release();
   }
 }
 
-const transactionHandler = async (
-  req: NextApiRequest,
-  res: NextApiResponse
-) => {
-  if (req.method === "POST") {
-    const { transactionType, details } = req.body;
+// Handle POST request for transactions
+export async function POST(req: NextRequest) {
+  try {
+    const { transactionType, details } = await req.json();
 
-    try {
-      await handleTransaction(transactionType, details);
-      res.status(200).json({ message: "Transaction successful" });
-    } catch (error: unknown) {
-      // Type guard to handle the error safely
-      if (error instanceof Error) {
-        res.status(500).json({ error: error.message });
-      } else {
-        res.status(500).json({ error: "An unknown error occurred" });
-      }
+    if (!transactionType || !details) {
+      return NextResponse.json({ error: 'Transaction type or details missing' }, { status: 400 });
     }
-  } else {
-    res.status(405).json({ message: "Method Not Allowed" });
-  }
-};
 
-export default transactionHandler;
+    // Call the transaction handler
+    const successMessage = await handleTransaction(transactionType as TransactionType, details);
+
+    return NextResponse.json({ message: successMessage }, { status: 200 });
+  } catch (error) {
+    console.error("Error handling transaction:", error);
+    return NextResponse.json({ error: 'An error occurred during the transaction' }, { status: 500 });
+  }
+}
+
+// Handle GET request for transaction history
+export async function GET(req: NextRequest) {
+  const accountId = req.nextUrl.searchParams.get('accountId');
+
+  if (!accountId) {
+    return NextResponse.json({ error: 'Account ID is required' }, { status: 400 });
+  }
+
+  const connection = await db.getConnection();
+
+  try {
+    const [transactions]: [RowDataPacket[], FieldPacket[]] = await connection.query(
+      'SELECT * FROM Transaction WHERE AccountID = ? ORDER BY TransactionDate DESC',
+      [accountId]
+    );
+
+    return NextResponse.json({ transactions }, { status: 200 });
+  } catch (error) {
+    console.error("Error handling transaction:", error);
+    return NextResponse.json({ error: 'An error occurred while fetching transaction history' }, { status: 500 });
+  } finally {
+    connection.release();
+  }
+}
