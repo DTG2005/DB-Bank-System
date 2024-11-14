@@ -224,8 +224,17 @@ export async function GET(req: NextRequest) {
 
   try {
     const [transactions]: [RowDataPacket[], FieldPacket[]] = await connection.query(
-      'SELECT * FROM Transaction WHERE AccountID = ? ORDER BY TransactionDate DESC',
-      [accountId]
+      `
+      SELECT *,
+        CASE 
+          WHEN TransactionFrom = ? THEN 'outgoing' 
+          WHEN TransactionTo = ? THEN 'incoming' 
+        END AS transactionType
+      FROM Transaction 
+      WHERE TRansactionFrom = ? OR TransactionTo = ?
+      ORDER BY TransactionDate DESC
+      `,
+      [accountId, accountId, accountId, accountId]
     );
 
     return NextResponse.json({ transactions }, { status: 200 });
