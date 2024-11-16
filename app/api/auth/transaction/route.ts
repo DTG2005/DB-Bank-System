@@ -7,6 +7,7 @@ enum TransactionType {
   TRANSFER = 'TRANSFER',
   WITHDRAW = 'WITHDRAW',
   DEPOSIT = 'DEPOSIT',
+  BILL_PAYMENT = 'BILL_PAYMENT'
 }
 
 // Interface for transaction details
@@ -28,8 +29,13 @@ interface DepositDetails {
   amount: number;
   name: string;
 }
+interface BillPaymentDetails {
+  accountId: string;
+  billType: string;
+  amount: number;
+}
 
-type TransactionDetails = TransferDetails | WithdrawDetails | DepositDetails;
+type TransactionDetails = TransferDetails | WithdrawDetails | DepositDetails | BillPaymentDetails;
 
 // Function to handle all transaction types
 async function handleTransaction(transactionType: TransactionType, details: TransactionDetails): Promise<string> {
@@ -41,18 +47,26 @@ async function handleTransaction(transactionType: TransactionType, details: Tran
     switch (transactionType) {
       case TransactionType.TRANSFER: {
         const { senderAccountId, senderName, recipientAccountId, amount } = details as TransferDetails;
-
-        // 1. Validate sender account exists and name matches
+      
+    
         const [senderResult]: [RowDataPacket[], FieldPacket[]] = await connection.query(
-          'SELECT * FROM Account WHERE AccountID = ?',
+          `SELECT a.AccountID, c.Firstname, c.Middlename, c.Lastname 
+           FROM Account a 
+           JOIN Customer c ON a.CustomerID = c.CustomerID 
+           WHERE a.AccountID = ?`,
           [senderAccountId]
         );
 
-        if (!senderResult || senderResult.length === 0) {
+        if (!senderResult.length) {
           throw new Error('Sender account not found');
         }
 
         const sender = senderResult[0];
+        const fullSenderName = `${sender.Firstname} ${sender.Middlename} ${sender.Lastname}`.trim();
+
+        if (fullSenderName !== senderName.trim()) {
+          throw new Error('Sender information wrong!');
+        }
         const senderBranchId = sender.BranchID; // Get the BranchID from the Account table
 
         // 2. Validate recipient account exists
@@ -95,23 +109,25 @@ async function handleTransaction(transactionType: TransactionType, details: Tran
       case TransactionType.WITHDRAW: {
         const { accountId, amount, name } = details as WithdrawDetails;
 
-        // 1. Validate account exists and fetch account details
+        // Validate account and name
         const [accountResult]: [RowDataPacket[], FieldPacket[]] = await connection.query(
-          'SELECT * FROM Account WHERE AccountID = ?',
+          `SELECT a.AccountID, c.Firstname, c.Middlename, c.Lastname, a.Balance 
+           FROM Account a 
+           JOIN Customer c ON a.CustomerID = c.CustomerID 
+           WHERE a.AccountID = ?`,
           [accountId]
         );
 
-        if (!accountResult || accountResult.length === 0) {
+        if (!accountResult.length) {
           throw new Error('Account not found');
         }
 
         const account = accountResult[0];
+        const fullAccountName = `${account.Firstname} ${account.Middlename} ${account.Lastname}`.trim();
 
-        // 2. Validate account holder name
-        if (account.AccountHolderName !== name) {
-          throw new Error('Account holder\'s name does not match');
+        if (fullAccountName !== name.trim()) {
+          throw new Error('Incorrect information given!');
         }
-
         // 3. Check balance
         if (account.Balance < amount) {
           throw new Error('Insufficient funds');
@@ -141,22 +157,25 @@ async function handleTransaction(transactionType: TransactionType, details: Tran
         const { accountId, amount, name } = details as DepositDetails;
 
         // 1. Validate account exists and fetch account details
+        // Validate account and name
         const [accountResult]: [RowDataPacket[], FieldPacket[]] = await connection.query(
-          'SELECT * FROM Account WHERE AccountID = ?',
+          `SELECT a.AccountID, c.Firstname, c.Middlename, c.Lastname 
+           FROM Account a 
+           JOIN Customer c ON a.CustomerID = c.CustomerID 
+           WHERE a.AccountID = ?`,
           [accountId]
         );
 
-        if (!accountResult || accountResult.length === 0) {
+        if (!accountResult.length) {
           throw new Error('Account not found');
         }
 
         const account = accountResult[0];
+        const fullAccountName = `${account.Firstname} ${account.Middlename} ${account.Lastname}`.trim();
 
-        // 2. Validate account holder name
-        if (account.AccountHolderName !== name) {
-          throw new Error('Account holder\'s name does not match');
+        if (fullAccountName !== name.trim()) {
+          throw new Error('Incorrect information given!');
         }
-
         // 3. Retrieve BranchID from the Account table
         const branchId = account.BranchID;
 
@@ -176,6 +195,38 @@ async function handleTransaction(transactionType: TransactionType, details: Tran
 
         break;
       }
+      case TransactionType.BILL_PAYMENT: {
+        const { accountId, billType, amount } = details as BillPaymentDetails;
+
+        // Validate account exists
+        const [accountResult]: [RowDataPacket[], FieldPacket[]] = await connection.query(
+          'SELECT * FROM account WHERE AccountID = ?',
+          [accountId]
+        );
+
+        if (!accountResult || accountResult.length === 0) {
+          throw new Error('Account not found');
+        }
+
+        const account = accountResult[0];
+        if (account.Balance < amount) {
+          throw new Error('Insufficient funds');
+        }
+
+        // Deduct the amount
+        await connection.query('UPDATE account SET Balance = Balance - ? WHERE AccountID = ?', [amount, accountId]);
+
+        // Log the bill payment transaction
+        const transactionDate = new Date().toISOString().split('T')[0];
+        const transactionTime = new Date().toISOString().split('T')[1].split('.')[0];
+
+        await connection.query(
+          `INSERT INTO Transaction (AccountID, BranchID, TransactionType, Amount, Status, TransactionDate, TransactionTime, Description, TransactionFrom) 
+           VALUES (?, ?, 'BILLPAY', ?, true, ?, ?, 'Billpayment: ${billType}', ?)`,
+          [accountId, account.BranchID, amount, transactionDate, transactionTime, accountId]
+        );
+
+        break;}
 
       default:
         throw new Error('Invalid transaction type');
@@ -208,7 +259,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: successMessage }, { status: 200 });
   } catch (error) {
     console.error("Error handling transaction:", error);
-    return NextResponse.json({ error: 'An error occurred during the transaction' }, { status: 500 });
+
+    // Send detailed error messages to the client
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    } else {
+      return NextResponse.json({ error: 'An unknown error occurred during the transaction' }, { status: 500 });
+    }
   }
 }
 
