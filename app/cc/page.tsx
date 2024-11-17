@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import axios from 'axios'; // Ensure axios is installed
+import axios from 'axios';
 import { CreditCard, ShieldCheck } from 'lucide-react';
 
 const CreditCards: React.FC = () => {
@@ -109,7 +109,7 @@ const CreditCards: React.FC = () => {
           <div className="flex justify-center mt-12">
             <div className="w-full md:w-1/3 p-6 bg-white rounded-xl shadow-lg hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300">
               <label htmlFor="accountID" className="block text-lg font-medium text-gray-700 mb-2">
-                Enter your Account Number for {creditCardOptions[selectedCardIndex].title}
+                Enter your Account ID for {creditCardOptions[selectedCardIndex].title}
               </label>
               <input
                 id="accountID"
@@ -117,7 +117,7 @@ const CreditCards: React.FC = () => {
                 value={accountID}
                 onChange={(e) => setAccountID(e.target.value)}
                 className="w-full p-4 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all duration-300"
-                placeholder="Account Number"
+                placeholder="Account ID"
               />
               <button
                 onClick={handleSubmit}
