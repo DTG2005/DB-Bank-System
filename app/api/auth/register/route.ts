@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
       email,
       password,
       confirmPassword,
-      mobile,
+      mobileNumber,
       accountType,
       address,
       dob,
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     } = JSON.parse(textBody);
 
     // Use ?? operator to replace undefined with null for SQL
-    const mobileValue = mobile ?? null;
+    const mobileValue = mobileNumber ?? null;
     console.log("email:" + email);
     const emailValue = email === undefined ? null : email;
     const passwordValue = password ? password : null;
@@ -39,11 +39,11 @@ export async function POST(req: NextRequest) {
       !email ||
       !password ||
       !confirmPassword ||
-      !mobile ||
+      !mobileNumber ||
       !accountType ||
       !address ||
-      !dob
-      // !identificationNumber
+      !dob ||
+      !identificationNumber
     ) {
       return NextResponse.json(
         { error: "All fields are required." + textBody },
@@ -63,9 +63,20 @@ export async function POST(req: NextRequest) {
     // await db.execute(createTableQuery);
 
     const query =
-      "INSERT INTO customer (Firstname, Middlename, Lastname, ) VALUES (?, ?, ?)";
-    const values = [mobileValue, emailValue, passwordValue];
-    const value1 = await db.execute(query, values);
+      "INSERT INTO customer (Firstname, Middlename, Lastname, Email, Password, Mobile, AccountType, Address, DOB, IdentificationNumber) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    const values = [
+      firstName,
+      middleName,
+      lastName,
+      emailValue,
+      passwordValue,
+      mobileValue,
+      accountTypeValue,
+      addressValue,
+      dobValue,
+      identificationNumberValue,
+    ];
+    await db.execute(query, values);
 
     return NextResponse.json(
       { message: "User registered successfully!" },
