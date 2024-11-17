@@ -110,7 +110,7 @@ const Login: React.FC = () => {
                 Forgot Password?
               </a>
               <span className="mx-2">|</span>
-              <a href="/sign-up" className="underline hover:text-blue-700">
+              <a href="/signup" className="underline hover:text-blue-700">
                 Sign Up
               </a>
             </div>

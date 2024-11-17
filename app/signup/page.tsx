@@ -136,6 +136,7 @@ const AccountCreation = () => {
             </div>
           </div>
         );
+
       case 2:
         return (
           <div className="space-y-4">
@@ -170,6 +171,110 @@ const AccountCreation = () => {
                     placeholder="Enter ID Number"
                   />
                 </div>
+              </div>
+            </div>
+          </div>
+        );
+      case 3:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold text-white mb-6">
+              Account Setup
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="text-blue-100">Account Type</label>
+                <div className="grid grid-cols-2 gap-4 mt-2">
+                  {["Savings", "Checking", "Business", "Student"].map(
+                    (type) => (
+                      <div
+                        key={type}
+                        className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                          formData.accountType.toLowerCase() ===
+                          type.toLowerCase()
+                            ? "border-blue-400 bg-blue-400/20"
+                            : "border-blue-200/20 bg-white/5 hover:bg-white/10"
+                        }`}
+                        onClick={() =>
+                          setFormData({
+                            ...formData,
+                            accountType: type.toLowerCase(),
+                          })
+                        }
+                      >
+                        <div className="flex items-center space-x-3">
+                          <CreditCard className="h-6 w-6 text-blue-200" />
+                          <span className="text-white">{type}</span>
+                        </div>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="text-blue-100">Branch Location</label>
+                <div className="relative">
+                  <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-200 h-5 w-5" />
+                  <select
+                    name="branch"
+                    value={formData.branch}
+                    onChange={handleInputChange}
+                    className="w-full mt-1 pl-10 p-3 bg-white/5 border border-blue-200/20 rounded-lg focus:ring-2 focus:ring-blue-400 text-white"
+                  >
+                    <option value="">Select branch</option>
+                    <option value="main">Main Branch</option>
+                    <option value="north">North Branch</option>
+                    <option value="south">South Branch</option>
+                    <option value="east">East Branch</option>
+                    <option value="west">West Branch</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      case 4:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold text-white mb-6">
+              Security Setup
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="text-blue-100">Email Address</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-200 h-5 w-5" />
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="w-full mt-1 pl-10 p-3 bg-white/5 border border-blue-200/20 rounded-lg focus:ring-2 focus:ring-blue-400 text-white"
+                    placeholder="Enter email address"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-blue-100">Password</label>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  className="w-full mt-1 p-3 bg-white/5 border border-blue-200/20 rounded-lg focus:ring-2 focus:ring-blue-400 text-white"
+                  placeholder="Create password"
+                />
+              </div>
+              <div>
+                <label className="text-blue-100">Confirm Password</label>
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  className="w-full mt-1 p-3 bg-white/5 border border-blue-200/20 rounded-lg focus:ring-2 focus:ring-blue-400 text-white"
+                  placeholder="Confirm password"
+                />
               </div>
             </div>
           </div>

@@ -27,16 +27,16 @@ export const AnimatedList = React.memo(
       }
     }, [index, delay, childrenArray.length]);
 
-    const itemsToShow = useMemo(() => {
-      const result = childrenArray.slice(0, index + 1).reverse();
-      return result;
-    }, [index, childrenArray]);
+    const itemsToShow = useMemo(
+      () => childrenArray.slice(0, index + 1),
+      [index, childrenArray]
+    );
 
     return (
       <div className={`flex flex-col items-center gap-4 ${className}`}>
-        <AnimatePresence>
-          {itemsToShow.map((item) => (
-            <AnimatedListItem key={(item as React.ReactElement).key}>
+        <AnimatePresence mode="sync">
+          {itemsToShow.map((item, idx) => (
+            <AnimatedListItem key={(item as ReactElement).key || idx}>
               {item}
             </AnimatedListItem>
           ))}
@@ -49,15 +49,15 @@ export const AnimatedList = React.memo(
 AnimatedList.displayName = "AnimatedList";
 
 export function AnimatedListItem({ children }: { children: React.ReactNode }) {
-  const animations = {
-    initial: { scale: 0, opacity: 0 },
-    animate: { scale: 1, opacity: 1, originY: 0 },
-    exit: { scale: 0, opacity: 0 },
-    transition: { type: "spring", stiffness: 350, damping: 40 },
-  };
-
   return (
-    <motion.div {...animations} layout className="mx-auto w-full">
+    <motion.div
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1, originY: 0 }}
+      exit={{ scale: 0, opacity: 0 }}
+      transition={{ type: "spring", stiffness: 350, damping: 40 }}
+      layout
+      className="mx-auto w-full"
+    >
       {children}
     </motion.div>
   );

@@ -2,12 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import {
-  ChevronRight,
   Phone,
   Mail,
   MapPin,
   Shield,
-  DollarSign,
   PiggyBank,
   CreditCard,
   Building,
@@ -16,8 +14,6 @@ import {
 import { AnimatedList } from "@/components/ui/animated-list";
 import GradualSpacing from "@/components/ui/gradual-spacing";
 import HyperText from "@/components/ui/hyper-text";
-import AvatarCircles from "@/components/ui/avatar-circles";
-import Router from "next/router";
 
 const BankHomepage = () => {
   const [isScrolled, setIsScrolled] = useState(false);

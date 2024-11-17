@@ -61,8 +61,8 @@ export async function POST(req: NextRequest) {
     //   "CREATE TABLE IF NOT EXISTS customer (mobile VARCHAR(20), email VARCHAR(255), passwordValue VARCHAR(255))";
     // await db.execute(createTableQuery);
 
-    const query =
-      "INSERT INTO customer (Firstname, Middlename, Lastname, Email, Passwords, PhoneNumber, Location, DateJoined, DOB, SSN, Age) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    const queryCust =
+      "INSERT INTO customer (Firstname, Middlename, Lastname, Email, Passwords, PhoneNumber, Location, DateJoined, DateOfBirth, SSN, Age) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     const values = [
       firstName,
       middleName,
@@ -76,14 +76,23 @@ export async function POST(req: NextRequest) {
       identificationNumberValue,
       new Date().getFullYear() - new Date(dobValue).getFullYear(),
     ];
-    await db.execute(query, values);
+    await db.execute(queryCust, values);
+
+    const getCustDetails = "";
+
+    const queryAcc =
+      "INSERT INTO account (AccountType, AccountNumber, Balance, CustomerID) VALUES (?, ?, ?, ?)";
 
     return NextResponse.json(
       { message: "User registered successfully!" },
       { status: 200 }
     );
-  } catch (error) {
-    console.error(error); // Log the error to debug
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    } else if (typeof error === "string") {
+      return NextResponse.json({ error }, { status: 500 });
+    }
     return NextResponse.json(
       { error: "Failed to register user." },
       { status: 500 }
