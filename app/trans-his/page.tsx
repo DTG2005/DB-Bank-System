@@ -1,71 +1,77 @@
 "use client";
 
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CircleDollarSign,CreditCard, Home, History, ArrowLeftRight, Search, Download, Filter, ArrowUpRight, ArrowDownRight, Calendar } from 'lucide-react';
+import {
+  CircleDollarSign,
+  CreditCard,
+  Home,
+  History,
+  ArrowLeftRight,
+  ArrowUpRight,
+  ArrowDownRight,
+} from "lucide-react";
 
 const TransactionHistoryPage = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPeriod, setSelectedPeriod] = useState('all');
-  const [selectedType, setSelectedType] = useState('all');
-
-  const transactions = [
-    {
-      id: 1,
-      type: 'credit',
-      description: 'Salary Deposit',
-      amount: 5000.00,
-      date: '2024-03-15',
-      category: 'Income',
-      status: 'Completed',
-      account: 'Main Account (...4523)',
-      icon: '💰'
-    },
-    {
-      id: 2,
-      type: 'debit',
-      description: 'Amazon Purchase',
-      amount: 99.99,
-      date: '2024-03-14',
-      category: 'Shopping',
-      status: 'Completed',
-      account: 'Credit Card (...7890)',
-      icon: '🛍️'
-    },
-    {
-      id: 3,
-      type: 'debit',
-      description: 'Netflix Subscription',
-      amount: 14.99,
-      date: '2024-03-13',
-      category: 'Entertainment',
-      status: 'Recurring',
-      account: 'Main Account (...4523)',
-      icon: '📺'
-    },
-    {
-      id: 4,
-      type: 'credit',
-      description: 'Freelance Payment',
-      amount: 850.00,
-      date: '2024-03-12',
-      category: 'Income',
-      status: 'Completed',
-      account: 'Business Account (...6789)',
-      icon: '💻'
-    }
-  ];
-
-  const summary = {
-    totalIncome: 5850.00,
-    totalExpenses: 114.98,
-    netFlow: 5735.02
+  type Transaction = {
+    TransactionID: string; // Unique identifier for transactions
+    transactionType: "incoming" | "outgoing";
+    Amount: number;
+    Description: string;
+    TransactionDate: string; 
+    TransactionTime: string;// Assuming ISO date string
   };
+
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [summary, setSummary] = useState({
+    totalIncome: 0,
+    totalExpenses: 0,
+    netFlow: 0,
+  });
+
+  const accountNumber = "987654"; // Replace with dynamic accountId if needed
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        // Fetch transactions based on the accountNumber
+        const response = await fetch(`/api/auth/transaction?accountNumber=${accountNumber}`);
+        const data = await response.json();
+        console.log(data); 
+        if (response.ok) {
+          const { transactions }: { transactions: Transaction[] } = data;
+
+          // Calculate summary data
+          const totalIncome = transactions
+            .filter((txn) => txn.transactionType === "incoming")
+            .reduce((sum, txn) => sum + txn.Amount, 0);
+
+          const totalExpenses = transactions
+            .filter((txn) => txn.transactionType === "outgoing")
+            .reduce((sum, txn) => sum + txn.Amount, 0);
+
+          setSummary({
+            totalIncome,
+            totalExpenses,
+            netFlow: totalIncome - totalExpenses,
+          });
+
+          setTransactions(transactions);
+        } else {
+          console.error(data.error || "Failed to fetch transactions.");
+        }
+      } catch (error) {
+        console.error("Error fetching transactions:", error);
+      }
+    };
+
+    fetchTransactions();
+  }, [accountNumber]); // Rerun effect when the accountNumber changes
+
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Left Sidebar */}
+      {/* Sidebar */}
       <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 p-4">
         <div className="mb-8">
           <h1 className="text-xl font-bold text-blue-600 flex items-center gap-2">
@@ -102,11 +108,8 @@ const TransactionHistoryPage = () => {
       {/* Main Content */}
       <div className="ml-64 p-8">
         <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-2xl font-semibold">Transaction History</h1>
-            <p className="text-gray-600">View and manage your transaction history across all accounts.</p>
-          </div>
+          <h1 className="text-2xl font-semibold">Transaction History</h1>
+          <p className="text-gray-600 mb-8">View and manage your transactions.</p>
 
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -153,8 +156,6 @@ const TransactionHistoryPage = () => {
             </Card>
           </div>
 
-      
-
           {/* Transactions List */}
           <Card>
             <CardHeader>
@@ -164,36 +165,30 @@ const TransactionHistoryPage = () => {
               <div className="space-y-4">
                 {transactions.map((transaction) => (
                   <div
-                    key={transaction.id}
-                    className="p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors"
+                    key={transaction.TransactionID}
+                    className="p-4 border border-gray-100 rounded-lg hover:bg-gray-50"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="text-2xl">{transaction.icon}</div>
-                        <div>
-                          <h4 className="font-medium">{transaction.description}</h4>
-                          <p className="text-sm text-gray-600">{transaction.account}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs px-2 py-1 bg-gray-100 rounded-full">
-                              {transaction.category}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {new Date(transaction.date).toLocaleDateString()}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className={`font-medium ${
-                          transaction.type === 'credit' ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {transaction.type === 'credit' ? '+' : '-'}${transaction.amount.toLocaleString()}
+                    <div className="flex justify-between">
+                      <div>
+                        <h4 className="font-medium">{transaction.Description}</h4>
+                        <p className="text-gray-600 text-sm">
+                          {new Date(transaction.TransactionDate).toLocaleDateString()}
                         </p>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          transaction.status === 'Completed' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'
-                        }`}>
-                          {transaction.status}
-                        </span>
+                        <p className="text-gray-600 text-sm">
+                          {transaction.TransactionTime}
+                        </p>
+                      </div>
+                      <div>
+                        <p
+                          className={`font-medium ${
+                            transaction.transactionType === "incoming"
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
+                        >
+                          {transaction.transactionType === "incoming" ? "+" : "-"}$
+                          {transaction.Amount.toFixed(2)}
+                        </p>
                       </div>
                     </div>
                   </div>
