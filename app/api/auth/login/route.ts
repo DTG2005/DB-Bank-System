@@ -1,7 +1,6 @@
 // app/api/login/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "../../../../lib/db";
-import bcrypt from "bcryptjs";
 import { RowDataPacket, FieldPacket } from "mysql2";
 
 interface User {
@@ -13,7 +12,12 @@ interface User {
 export async function POST(req: NextRequest) {
   try {
     const textBody = await req.text();
-    const { email, password } = JSON.parse(textBody);
+    const resp = JSON.parse(textBody);
+
+    const email = resp.internetBankingId;
+    const password = resp.password;
+
+    console.log(textBody);
 
     if (!email || !password) {
       return NextResponse.json(
@@ -22,7 +26,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const query = "SELECT * FROM users WHERE email = ?";
+    const query = "SELECT * FROM customer WHERE email = ?";
 
     // Specify the type of the result as [User[] & RowDataPacket[], FieldPacket[]]
     const [rows] = (await db.execute(query, [email])) as [
@@ -35,9 +39,10 @@ export async function POST(req: NextRequest) {
     }
 
     const user = rows[0];
-    const passwordMatch = await bcrypt.compare(password, user.passwordValue);
+    const passwordMatch = password === user.Passwords;
 
     if (!passwordMatch) {
+      console.log(user.Passwords, password);
       return NextResponse.json(
         { error: "Invalid email or password." },
         { status: 401 }
