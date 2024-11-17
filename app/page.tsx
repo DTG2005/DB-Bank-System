@@ -1,25 +1,14 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import {
-  Bell,
-  HelpCircle,
-  ChevronDown,
-  Search,
-  ArrowRight,
-  Phone,
-  Shield,
-  Gift,
-  CreditCard,
-  Percent,
-  Building,
-  Users,
-  AtSign,
-} from 'lucide-react';
-import Navbar from './NavBar'; 
+import React, { useState, useEffect } from 'react';
+import { ChevronRight, Phone, Mail, MapPin, Shield, DollarSign, PiggyBank, CreditCard, Building, ArrowRight } from 'lucide-react';
+import { AnimatedList } from '@/components/ui/animated-list';
+import GradualSpacing from "@/components/ui/gradual-spacing";
+import HyperText from "@/components/ui/hyper-text";
+import AvatarCircles from "@/components/ui/avatar-circles";
 
-const HomePage: React.FC = () => {
-  const [isScrolled, setIsScrolled] = useState<boolean>(false);
+const BankHomepage = () => {
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -31,240 +20,160 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar isScrolled={isScrolled} />
-      <main>
-        <HeroSection />
-        <FeaturedProducts />
-        <PrivilegesSection />
-        <StatisticsSection />
-        <DigitalBankingSection />
-        <SecurityAlert />
-      </main>
-      <FloatingActionButtons />
-    </div>
-  );
-};
-
-const HeroSection: React.FC = () => {
-  const [activeSlide, setActiveSlide] = useState<number>(0);
-  const slides = [
-    {
-      title: "Elevate Exclusivity with digital cards",
-      description: "Experience unlimited privileges and premium benefits",
-      buttonText: "Apply Now",
-      image: "/api/placeholder/600/400",
-    },
-    {
-      title: "Fulfill your dream career",
-      description: "Empower your academic growth with hassle-free university loans",
-      buttonText: "Get Started",
-      image: "/api/placeholder/600/400",
-    },
-  ];
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveSlide((prev) => (prev + 1) % slides.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, []);
-
-  return (
-    <div className="pt-32 pb-16 bg-gradient-to-br from-blue-50 to-gray-50">
-      <div className="container mx-auto px-6">
-        <div className="flex flex-col md:flex-row items-center justify-between">
-          <div className="md:w-1/2 space-y-6">
-            <h1 className="text-5xl font-bold text-gray-900 leading-tight">{slides[activeSlide].title}</h1>
-            <p className="text-xl text-gray-600">{slides[activeSlide].description}</p>
-            <div className="flex space-x-4">
-              <button className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-lg transition-colors flex items-center">
-                {slides[activeSlide].buttonText}
-                <ArrowRight className="ml-2 h-5 w-5" />
+      {/* Navbar */}
+      <nav className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-lg' : 'bg-transparent'}`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <Building className="h-8 w-8 text-blue-600" />
+              <span className="ml-2 text-xl font-bold text-blue-600">EverTrust Bank</span>
+            </div>
+            <div className="hidden md:flex items-center space-x-8">
+              <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors">Credit Cards</a>
+              <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors">Loan</a>
+              <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors">About</a>
+              <button className="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors">
+                Login
               </button>
-              <button className="border-2 border-red-600 text-red-600 hover:bg-red-50 px-8 py-3 rounded-lg transition-colors">
-                Know More
+              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                Sign Up
               </button>
             </div>
           </div>
-          <div className="md:w-1/2 mt-8 md:mt-0">
-            <img
-              src={slides[activeSlide].image}
-              alt="Hero"
-              className="rounded-lg shadow-2xl transition-all duration-500 hover:scale-105"
-            />
-          </div>
         </div>
-      </div>
-    </div>
-  );
-};
+      </nav>
 
-const FeaturedProducts: React.FC = () => {
-  const products = [
-    { icon: CreditCard, title: "Credit Cards", description: "Exclusive rewards and benefits" },
-    { icon: Building, title: "Savings Account", description: "High interest rates" },
-    { icon: Gift, title: "Personal Loans", description: "Quick approval process" },
-    { icon: Percent, title: "Scholarships", description: "Attractive interest rates" },
-  ];
-
-  return (
-    <div className="py-16 bg-white">
-      <div className="container mx-auto px-6">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-gray-900">Featured Products</h2>
-          <p className="text-gray-600 mt-4">Discover our range of banking solutions</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {products.map((product, index) => (
-            <div
-              key={index}
-              className="bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
-            >
-              <product.icon className="h-12 w-12 text-blue-600 mb-4" />
-              <h3 className="text-xl font-semibold mb-2">{product.title}</h3>
-              <p className="text-gray-600">{product.description}</p>
-              <button className="mt-4 text-blue-600 hover:text-blue-700 flex items-center">
-                Learn More <ArrowRight className="ml-2 h-4 w-4" />
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const PrivilegesSection: React.FC = () => {
-  const privileges = [
-    {
-      icon: Gift,
-      title: "YES Rewardz",
-      description: "Join our exclusive rewards program",
-    },
-    {
-      icon: Percent,
-      title: "YES Offers",
-      description: "Personalized offers curated for you",
-    },
-  ];
-
-  return (
-    <div className="py-16 bg-gray-50">
-      <div className="container mx-auto px-6">
-        <h2 className="text-3xl font-bold text-center mb-12">
-          Privileges that make banking a pleasure
-        </h2>
-        <div className="grid md:grid-cols-2 gap-8">
-          {privileges.map((privilege, index) => (
-            <div
-              key={index}
-              className="bg-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300"
-            >
-              <privilege.icon className="h-16 w-16 text-blue-600 mb-6" />
-              <h3 className="text-2xl font-semibold mb-4">{privilege.title}</h3>
-              <p className="text-gray-600 mb-6">{privilege.description}</p>
-              <button className="text-blue-600 hover:text-blue-700 flex items-center">
-                Explore Now <ArrowRight className="ml-2 h-4 w-4" />
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const StatisticsSection: React.FC = () => {
-  const stats = [
-    { value: "1450+", label: "Banking Outlets", icon: Building },
-    { value: "880+", label: "Cities", icon: Users },
-    { value: "9.70M+", label: "Customers", icon: AtSign },
-    { value: "1,300+", label: "ATMs", icon: CreditCard },
-  ];
-
-  return (
-    <div className="bg-blue-600 py-16">
-      <div className="container mx-auto px-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {stats.map((stat, index) => (
-            <div key={index} className="text-center text-white">
-              <stat.icon className="h-8 w-8 mx-auto mb-4" />
-              <div className="text-4xl font-bold mb-2">{stat.value}</div>
-              <div className="text-blue-100">{stat.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const DigitalBankingSection: React.FC = () => {
-  return (
-    <div className="py-16 bg-white">
-      <div className="container mx-auto px-6">
-        <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl p-12 text-white">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-3xl font-bold mb-6">Experience Digital Banking</h2>
-              <p className="text-blue-100 mb-8">
-                Bank anywhere, anytime with our secure digital banking solutions
-              </p>
-              <button className="bg-white text-blue-600 px-8 py-3 rounded-lg hover:bg-blue-50 transition-colors">
-                Get Started
-              </button>
-            </div>
-            <div className="relative">
-              <img
-                src="/api/placeholder/500/300"
-                alt="Digital Banking"
-                className="rounded-lg shadow-xl"
+      {/* Hero Section */}
+      <div className="pt-32 pb-16 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center animate-fade-in">
+            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+              <GradualSpacing
+                className="font-display text-center text-4xl font-bold -tracking-widest text-blue-500 dark:text-blue-300 md:text-7xl md:leading-[5rem]"
+                text="Banking Made Simple"
               />
+
+            </h1>
+            <p className="text-xl text-gray-600 mb-8">
+              Secure, convenient, and personalized banking solutions for your future
+            </p>
+            <button className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center mx-auto">
+              Get Started <ArrowRight className="ml-2 h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Features Section */}
+      <div className="py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="p-6 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+              <Shield className="h-12 w-12 text-blue-600 mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Secure Banking</h3>
+              <p className="text-gray-600">
+                State-of-the-art security measures to protect your finances
+              </p>
+            </div>
+            <div className="p-6 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+              <PiggyBank className="h-12 w-12 text-blue-600 mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Smart Savings</h3>
+              <p className="text-gray-600">
+                Competitive interest rates and automated savings tools
+              </p>
+            </div>
+            <div className="p-6 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+              <CreditCard className="h-12 w-12 text-blue-600 mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Digital Cards</h3>
+              <p className="text-gray-600">
+                Instant virtual cards and contactless payments
+              </p>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-};
 
-const SecurityAlert: React.FC = () => {
-  return (
-    <div className="bg-gray-900 text-white py-4">
-      <div className="container mx-auto px-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <Shield className="h-6 w-6 mr-3 text-green-400" />
-            <span>
-              DIAL <span className="text-green-400 font-bold">1930</span> FOR ONLINE FINANCIAL FRAUD
-            </span>
-          </div>
-          <div className="flex items-center">
-            <Phone className="h-6 w-6 mr-3 text-green-400" />
-            <span>
-              Report cybercrime at{' '}
-              <a href="https://cybercrime.gov.in" className="text-green-400 hover:underline">
-                WWW.CYBERCRIME.GOV.IN
-              </a>
-            </span>
+      {/* Notifications Section (AnimatedListDemo) */}
+      <div className="py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-bold text-center mb-12">Recent Notifications</h2>
+          <AnimatedList />
+        </div>
+      </div>
+
+      {/* Rates Section */}
+      <div className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-bold text-center mb-12">Current Rates</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="p-6 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+              <HyperText className="text-3xl font-bold text-blue-800 mb-2" text="4.52% APY" />
+              <div className="text-lg font-semibold">Savings Account</div>
+              <p className="text-gray-600 mt-2">High-yield savings with no minimum balance</p>
+            </div>
+            <div className="p-6 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+            <HyperText className="text-3xl font-bold text-blue-800 mb-2" text="4.52% APY" />
+            <div className="text-lg font-semibold">Personal Loans</div>
+              <p className="text-gray-600 mt-2">Competitive rates for your needs</p>
+            </div>
+            <div className="p-6 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+            <HyperText className="text-3xl font-bold text-blue-800 mb-2" text="4.52% APY" />
+            <div className="text-lg font-semibold">Mortgages</div>
+              <p className="text-gray-600 mt-2">Fixed-rate home loans</p>
+            </div>
           </div>
         </div>
       </div>
+     
+    {/* CTA Section */}
+      <div className="py-16 bg-blue-600">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl font-bold text-white mb-4">
+            Ready to start your financial journey?
+          </h2>
+          <p className="text-xl text-blue-100 mb-8">
+            Open an account in minutes and experience modern banking
+          </p>
+          <button className="px-8 py-3 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors">
+            Open Account
+          </button>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Contact Us</h3>
+              <div className="space-y-2">
+                <div className="flex items-center">
+                  <Phone className="h-5 w-5 mr-2" />
+                  <span>EverTrust Bank</span>
+                </div>
+                <div className="flex items-center">
+                  <Mail className="h-5 w-5 mr-2" />
+                  <span>support@securebank.com</span>
+                </div>
+                <div className="flex items-center">
+                  <MapPin className="h-5 w-5 mr-2" />
+                  <span>123 Banking St, Finance City</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Products</h3>
+              <ul>
+                <li className="mb-2"><a href="#" className="hover:text-blue-400">Student Scholarships</a></li>
+                <li className="mb-2"><a href="#" className="hover:text-blue-400">Loans</a></li>
+                <li className="mb-2"><a href="#" className="hover:text-blue-400">Credit Cards</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
 
-const FloatingActionButtons: React.FC = () => {
-  return (
-    <div className="fixed bottom-8 right-8 flex flex-col space-y-4">
-      <button className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-colors">
-        <Phone className="h-6 w-6" />
-      </button>
-      <button className="bg-green-600 hover:bg-green-700 text-white p-3 rounded-full shadow-lg transition-colors">
-        <HelpCircle className="h-6 w-6" />
-      </button>
-    </div>
-  );
-};
-
-export default HomePage;
+export default BankHomepage;
