@@ -222,11 +222,11 @@ const AccountCreation = () => {
                     className="w-full mt-1 pl-10 p-3 bg-white/5 border border-blue-200/20 rounded-lg focus:ring-2 focus:ring-blue-400 text-white"
                   >
                     <option value="">Select branch</option>
-                    <option value="main">Main Branch</option>
-                    <option value="north">North Branch</option>
-                    <option value="south">South Branch</option>
-                    <option value="east">East Branch</option>
-                    <option value="west">West Branch</option>
+                    <option value="Main Branch">Main Branch</option>
+                    <option value="North Branch">North Branch</option>
+                    <option value="South Branch">South Branch</option>
+                    <option value="East Branch">East Branch</option>
+                    <option value="West Branch">West Branch</option>
                   </select>
                 </div>
               </div>
