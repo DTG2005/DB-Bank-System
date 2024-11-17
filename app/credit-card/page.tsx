@@ -1,11 +1,23 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, CreditCard, Home, History, CircleDollarSign, Gift, Percent, Shield, Star, ArrowLeftRight } from 'lucide-react';
+import {
+  Search,
+  CreditCard,
+  Home,
+  History,
+  CircleDollarSign,
+  Gift,
+  Percent,
+  Shield,
+  Star,
+  ArrowLeftRight,
+} from "lucide-react";
+import DashNavBar from "../dashboard/dashnavbar";
 
 const CreditCardPortal = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
   const creditCards = [
     {
@@ -17,19 +29,19 @@ const CreditCardPortal = () => {
       rewards: [
         "5% cash back on books and education",
         "3% on dining and entertainment",
-        "1% on all other purchases"
+        "1% on all other purchases",
       ],
       benefits: [
         "No annual fee",
         "Free credit score monitoring",
-        "Purchase protection"
+        "Purchase protection",
       ],
       requirements: [
         "Good credit score (680+)",
         "No credit history required",
-        "Valid ID"
+        "Valid ID",
       ],
-      color: "bg-gradient-to-r from-blue-500 to-purple-500"
+      color: "bg-gradient-to-r from-blue-500 to-purple-500",
     },
     {
       id: 2,
@@ -40,19 +52,19 @@ const CreditCardPortal = () => {
       rewards: [
         "3x points on travel bookings",
         "2x points on dining worldwide",
-        "1x points on all other purchases"
+        "1x points on all other purchases",
       ],
       benefits: [
         "Airport lounge access",
         "Travel insurance",
-        "No foreign transaction fees"
+        "No foreign transaction fees",
       ],
       requirements: [
         "Excellent credit score (720+)",
         "Minimum income $50,000",
-        "Clean credit history"
+        "Clean credit history",
       ],
-      color: "bg-gradient-to-r from-emerald-500 to-teal-500"
+      color: "bg-gradient-to-r from-emerald-500 to-teal-500",
     },
     {
       id: 3,
@@ -63,56 +75,22 @@ const CreditCardPortal = () => {
       rewards: [
         "2% cash back on all purchases",
         "5% on rotating categories",
-        "$200 welcome bonus"
+        "$200 welcome bonus",
       ],
-      benefits: [
-        "No annual fee",
-        "Cell phone protection",
-        "Extended warranty"
-      ],
+      benefits: ["No annual fee", "Cell phone protection", "Extended warranty"],
       requirements: [
         "Good credit score (680+)",
         "Stable income",
-        "US resident"
+        "US resident",
       ],
-      color: "bg-gradient-to-r from-orange-500 to-pink-500"
-    }
+      color: "bg-gradient-to-r from-orange-500 to-pink-500",
+    },
   ];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Left Sidebar */}
-      <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 p-4">
-        <div className="mb-8">
-          <h1 className="text-xl font-bold text-blue-600 flex items-center gap-2">
-            <div className="w-6 h-6 bg-blue-600 rotate-45" />
-            EverTrust
-          </h1>
-        </div>
-
-        <nav className="space-y-2">
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg">
-            <Home className="w-5 h-5" />
-            Home
-          </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg">
-            <ArrowLeftRight className="w-5 h-5" />
-            Transfer Funds
-          </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg">
-            <History className="w-5 h-5" />
-            Transaction History
-          </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-white bg-blue-500 rounded-lg">
-            <CreditCard className="w-5 h-5" />
-            Credit Cards
-          </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg">
-            <CircleDollarSign className="w-5 h-5" />
-            Apply for Loan
-          </button>
-        </nav>
-      </div>
+      {/* Sidebar */}
+      <DashNavBar activePage="credit-card" />
 
       {/* Main Content */}
       <div className="ml-64 p-8">
@@ -120,7 +98,9 @@ const CreditCardPortal = () => {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-2xl font-semibold">Credit Cards</h1>
-            <p className="text-gray-600">Find the perfect card for your lifestyle and financial goals.</p>
+            <p className="text-gray-600">
+              Find the perfect card for your lifestyle and financial goals.
+            </p>
           </div>
 
           {/* Search and Filter */}
@@ -150,10 +130,15 @@ const CreditCardPortal = () => {
           {/* Credit Cards Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {creditCards.map((card) => (
-              <Card key={card.id} className="overflow-hidden hover:shadow-lg transition-all">
+              <Card
+                key={card.id}
+                className="overflow-hidden hover:shadow-lg transition-all"
+              >
                 <div className={`h-32 ${card.color} p-6`}>
                   <div className="flex justify-between items-start">
-                    <h3 className="text-xl font-semibold text-white">{card.name}</h3>
+                    <h3 className="text-xl font-semibold text-white">
+                      {card.name}
+                    </h3>
                     <CreditCard className="w-8 h-8 text-white opacity-75" />
                   </div>
                 </div>

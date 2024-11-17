@@ -98,7 +98,12 @@ export async function POST(req: NextRequest) {
     await db.execute(queryAcc, valuesAcc);
 
     return NextResponse.json(
-      { message: "User registered successfully!" },
+      {
+        message: [
+          "User registered successfully!",
+          resultCustRows[0].CustomerID,
+        ],
+      },
       { status: 200 }
     );
   } catch (error: unknown) {
