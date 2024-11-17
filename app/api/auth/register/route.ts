@@ -1,7 +1,6 @@
 // app/api/register/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "../../../../lib/db";
-import bcrypt from "bcryptjs";
 
 export async function POST(req: NextRequest) {
   try {
@@ -63,7 +62,7 @@ export async function POST(req: NextRequest) {
     // await db.execute(createTableQuery);
 
     const query =
-      "INSERT INTO customer (Firstname, Middlename, Lastname, Email, Password, Mobile, AccountType, Address, DOB, IdentificationNumber) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      "INSERT INTO customer (Firstname, Middlename, Lastname, Email, Passwords, PhoneNumber, Location, DateJoined, DOB, SSN, Age) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     const values = [
       firstName,
       middleName,
@@ -71,10 +70,11 @@ export async function POST(req: NextRequest) {
       emailValue,
       passwordValue,
       mobileValue,
-      accountTypeValue,
       addressValue,
+      new Date().toISOString().split("T")[0], // YYYY-MM-DD format
       dobValue,
       identificationNumberValue,
+      new Date().getFullYear() - new Date(dobValue).getFullYear(),
     ];
     await db.execute(query, values);
 
