@@ -273,15 +273,28 @@ export async function POST(req: NextRequest) {
 
 // Handle GET request for transaction history
 export async function GET(req: NextRequest) {
-  const accountId = req.nextUrl.searchParams.get('accountId');
+  const accountNumber = req.nextUrl.searchParams.get('accountNumber');
 
-  if (!accountId) {
-    return NextResponse.json({ error: 'Account ID is required' }, { status: 400 });
+  if (!accountNumber) {
+    return NextResponse.json({ error: 'Account number is required' }, { status: 400 });
   }
 
+  // Retrieve the corresponding `accountId` from the `accounts` table
   const connection = await db.getConnection();
 
   try {
+    const [accountResult]: [RowDataPacket[], FieldPacket[]] = await connection.query(
+      'SELECT AccountID FROM account WHERE AccountNumber = ?',
+      [accountNumber]
+    );
+
+    if (accountResult.length === 0) {
+      return NextResponse.json({ error: 'Account number not found' }, { status: 404 });
+    }
+
+    const accountId = accountResult[0].AccountID;
+
+    // Fetch transactions for the retrieved `accountId`
     const [transactions]: [RowDataPacket[], FieldPacket[]] = await connection.query(
       `
       SELECT *,
@@ -290,8 +303,8 @@ export async function GET(req: NextRequest) {
           WHEN TransactionTo = ? THEN 'incoming' 
         END AS transactionType
       FROM Transaction 
-      WHERE TRansactionFrom = ? OR TransactionTo = ?
-      ORDER BY TransactionDate DESC
+      WHERE TransactionFrom = ? OR TransactionTo = ?
+       ORDER BY TransactionID DESC
       `,
       [accountId, accountId, accountId, accountId]
     );
