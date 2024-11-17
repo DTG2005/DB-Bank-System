@@ -2,16 +2,17 @@
 
 import React, { useState, useEffect } from "react";
 import {
+  ChevronRight,
   Phone,
   Mail,
   MapPin,
   Shield,
+  DollarSign,
   PiggyBank,
   CreditCard,
   Building,
   ArrowRight,
 } from "lucide-react";
-import { AnimatedList } from "@/components/ui/animated-list";
 import GradualSpacing from "@/components/ui/gradual-spacing";
 import HyperText from "@/components/ui/hyper-text";
 
@@ -124,16 +125,6 @@ const BankHomepage = () => {
               </p>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Notifications Section (AnimatedListDemo) */}
-      <div className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Recent Notifications
-          </h2>
-          <AnimatedList />
         </div>
       </div>
 
