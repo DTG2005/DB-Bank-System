@@ -1,7 +1,18 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { ChevronRight, Phone, Mail, MapPin, Shield, DollarSign, PiggyBank, CreditCard, Building, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import {
+  ChevronRight,
+  Phone,
+  Mail,
+  MapPin,
+  Shield,
+  DollarSign,
+  PiggyBank,
+  CreditCard,
+  Building,
+  ArrowRight,
+} from "lucide-react";
 import GradualSpacing from "@/components/ui/gradual-spacing";
 import HyperText from "@/components/ui/hyper-text";
 
@@ -12,28 +23,54 @@ const BankHomepage = () => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navbar */}
-      <nav className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-lg' : 'bg-transparent'}`}>
+      <nav
+        className={`fixed w-full z-50 transition-all duration-300 ${
+          isScrolled ? "bg-white shadow-lg" : "bg-transparent"
+        }`}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <Building className="h-8 w-8 text-blue-600" />
-              <span className="ml-2 text-xl font-bold text-blue-600">EverTrust Bank</span>
+              <span className="ml-2 text-xl font-bold text-blue-600">
+                EverTrust Bank
+              </span>
             </div>
             <div className="hidden md:flex items-center space-x-8">
-              <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors">Credit Cards</a>
-              <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors">Loan</a>
-              <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors">About</a>
+              <a
+                href="#"
+                className="text-gray-600 hover:text-blue-600 transition-colors"
+              >
+                Credit Cards
+              </a>
+              <a
+                href="#"
+                className="text-gray-600 hover:text-blue-600 transition-colors"
+              >
+                Loan
+              </a>
+              <a
+                href="#"
+                className="text-gray-600 hover:text-blue-600 transition-colors"
+              >
+                About
+              </a>
               <button className="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors">
                 Login
               </button>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              <button
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                onClick={() => {
+                  window.location.href = "/signup";
+                }}
+              >
                 Sign Up
               </button>
             </div>
@@ -50,10 +87,10 @@ const BankHomepage = () => {
                 className="font-display text-center text-4xl font-bold -tracking-widest text-blue-500 dark:text-blue-300 md:text-7xl md:leading-[5rem]"
                 text="Banking Made Simple"
               />
-
             </h1>
             <p className="text-xl text-gray-600 mb-8">
-              Secure, convenient, and personalized banking solutions for your future
+              Secure, convenient, and personalized banking solutions for your
+              future
             </p>
             <button className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center mx-auto">
               Get Started <ArrowRight className="ml-2 h-5 w-5" />
@@ -91,33 +128,46 @@ const BankHomepage = () => {
         </div>
       </div>
 
-      
-
       {/* Rates Section */}
       <div className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12">Current Rates</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">
+            Current Rates
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="p-6 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
-              <HyperText className="text-3xl font-bold text-blue-800 mb-2" text="4.52% APY" />
+              <HyperText
+                className="text-3xl font-bold text-blue-800 mb-2"
+                text="4.52% APY"
+              />
               <div className="text-lg font-semibold">Savings Account</div>
-              <p className="text-gray-600 mt-2">High-yield savings with no minimum balance</p>
+              <p className="text-gray-600 mt-2">
+                High-yield savings with no minimum balance
+              </p>
             </div>
             <div className="p-6 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
-            <HyperText className="text-3xl font-bold text-blue-800 mb-2" text="4.52% APY" />
-            <div className="text-lg font-semibold">Personal Loans</div>
-              <p className="text-gray-600 mt-2">Competitive rates for your needs</p>
+              <HyperText
+                className="text-3xl font-bold text-blue-800 mb-2"
+                text="4.52% APY"
+              />
+              <div className="text-lg font-semibold">Personal Loans</div>
+              <p className="text-gray-600 mt-2">
+                Competitive rates for your needs
+              </p>
             </div>
             <div className="p-6 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
-            <HyperText className="text-3xl font-bold text-blue-800 mb-2" text="4.52% APY" />
-            <div className="text-lg font-semibold">Mortgages</div>
+              <HyperText
+                className="text-3xl font-bold text-blue-800 mb-2"
+                text="4.52% APY"
+              />
+              <div className="text-lg font-semibold">Mortgages</div>
               <p className="text-gray-600 mt-2">Fixed-rate home loans</p>
             </div>
           </div>
         </div>
       </div>
-     
-    {/* CTA Section */}
+
+      {/* CTA Section */}
       <div className="py-16 bg-blue-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold text-white mb-4">
@@ -156,9 +206,21 @@ const BankHomepage = () => {
             <div>
               <h3 className="text-lg font-semibold mb-4">Products</h3>
               <ul>
-                <li className="mb-2"><a href="#" className="hover:text-blue-400">Student Scholarships</a></li>
-                <li className="mb-2"><a href="#" className="hover:text-blue-400">Loans</a></li>
-                <li className="mb-2"><a href="#" className="hover:text-blue-400">Credit Cards</a></li>
+                <li className="mb-2">
+                  <a href="#" className="hover:text-blue-400">
+                    Student Scholarships
+                  </a>
+                </li>
+                <li className="mb-2">
+                  <a href="#" className="hover:text-blue-400">
+                    Loans
+                  </a>
+                </li>
+                <li className="mb-2">
+                  <a href="#" className="hover:text-blue-400">
+                    Credit Cards
+                  </a>
+                </li>
               </ul>
             </div>
           </div>

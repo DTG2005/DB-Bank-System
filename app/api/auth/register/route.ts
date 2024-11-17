@@ -1,7 +1,13 @@
-// app/api/register/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "../../../../lib/db";
-import bcrypt from "bcryptjs";
+
+interface CustomerResult {
+  CustomerID: number;
+}
+
+interface BranchResult {
+  BranchID: number;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,19 +24,8 @@ export async function POST(req: NextRequest) {
       address,
       dob,
       identificationNumber,
+      branch,
     } = JSON.parse(textBody);
-
-    // Use ?? operator to replace undefined with null for SQL
-    const mobileValue = mobileNumber ?? null;
-    console.log("email:" + email);
-    const emailValue = email === undefined ? null : email;
-    const passwordValue = password ? password : null;
-    const accountTypeValue = accountType ? accountType : null;
-    const addressValue = address ? address : null;
-    const dobValue = dob ? dob : null;
-    const identificationNumberValue = identificationNumber
-      ? identificationNumber
-      : null;
 
     if (
       !firstName ||
@@ -43,10 +38,11 @@ export async function POST(req: NextRequest) {
       !accountType ||
       !address ||
       !dob ||
-      !identificationNumber
+      !identificationNumber ||
+      !branch
     ) {
       return NextResponse.json(
-        { error: "All fields are required." + textBody },
+        { error: "All fields are required." },
         { status: 400 }
       );
     }
@@ -58,32 +54,59 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // const createTableQuery =
-    //   "CREATE TABLE IF NOT EXISTS customer (mobile VARCHAR(20), email VARCHAR(255), passwordValue VARCHAR(255))";
-    // await db.execute(createTableQuery);
-
-    const query =
-      "INSERT INTO customer (Firstname, Middlename, Lastname, Email, Password, Mobile, AccountType, Address, DOB, IdentificationNumber) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    const queryCust =
+      "INSERT INTO customer (Firstname, Middlename, Lastname, Email, Passwords, PhoneNumber, Location, DateJoined, DateOfBirth, SSN, Age) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     const values = [
       firstName,
       middleName,
       lastName,
-      emailValue,
-      passwordValue,
-      mobileValue,
-      accountTypeValue,
-      addressValue,
-      dobValue,
-      identificationNumberValue,
+      email,
+      password,
+      mobileNumber,
+      address,
+      new Date().toISOString().split("T")[0], // YYYY-MM-DD format
+      dob,
+      identificationNumber,
+      new Date().getFullYear() - new Date(dob).getFullYear(),
     ];
-    await db.execute(query, values);
+    await db.execute(queryCust, values);
+
+    const getCustDetails = "SELECT CustomerID FROM customer WHERE SSN = (?)";
+    const [resultCustRows] = (await db.execute(getCustDetails, [
+      identificationNumber,
+    ])) as [CustomerResult[], any];
+
+    const getBranchDetails =
+      "SELECT BranchID FROM branch WHERE BranchName = (?)";
+    const [resultBranchRows] = (await db.execute(getBranchDetails, [
+      branch,
+    ])) as [BranchResult[], any];
+
+    const queryAcc =
+      "INSERT INTO account (AccountType, CustomerID, Balance, BranchID, Interest, DateOpened, InterestAddDateEffective) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    const valuesAcc = [
+      accountType,
+      resultCustRows[0]?.CustomerID,
+      0,
+      resultBranchRows[0]?.BranchID,
+      8.5,
+      new Date().toISOString().split("T")[0], // YYYY-MM-DD format
+      new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0],
+    ];
+    await db.execute(queryAcc, valuesAcc);
 
     return NextResponse.json(
       { message: "User registered successfully!" },
       { status: 200 }
     );
-  } catch (error) {
-    console.error(error); // Log the error to debug
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    } else if (typeof error === "string") {
+      return NextResponse.json({ error }, { status: 500 });
+    }
     return NextResponse.json(
       { error: "Failed to register user." },
       { status: 500 }
