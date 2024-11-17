@@ -6,78 +6,95 @@ import { Search, CreditCard, Home, History, CircleDollarSign, Gift, Percent, Shi
 const CreditCardPortal = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [accountNumber, setAccountNumber] = useState('');
+  const [selectedCard, setSelectedCard] = useState(null);
 
   const creditCards = [
     {
       id: 1,
-      name: "Premier Rewards Card",
-      category: "rewards",
-      annualFee: 0,
-      apr: "15.99-24.99%",
+      name: "Premium Card",
+      category: "premium",
+      annualFee: 150,
+      apr: "12.99-20.99%",
       rewards: [
-        "5% cash back on books and education",
-        "3% on dining and entertainment",
+        "4% cash back on dining and travel",
+        "2% on groceries",
         "1% on all other purchases"
       ],
       benefits: [
-        "No annual fee",
-        "Free credit score monitoring",
-        "Purchase protection"
+        "Airport lounge access",
+        "Concierge service",
+        "Exclusive events access"
       ],
       requirements: [
-        "Good credit score (680+)",
-        "No credit history required",
-        "Valid ID"
+        "Excellent credit score (750+)",
+        "Minimum income $75,000",
+        "Clean credit history"
       ],
       color: "bg-gradient-to-r from-blue-500 to-purple-500"
     },
     {
       id: 2,
-      name: "Elite Travel Plus",
-      category: "travel",
-      annualFee: 95,
-      apr: "17.99-25.99%",
-      rewards: [
-        "3x points on travel bookings",
-        "2x points on dining worldwide",
-        "1x points on all other purchases"
-      ],
-      benefits: [
-        "Airport lounge access",
-        "Travel insurance",
-        "No foreign transaction fees"
-      ],
-      requirements: [
-        "Excellent credit score (720+)",
-        "Minimum income $50,000",
-        "Clean credit history"
-      ],
-      color: "bg-gradient-to-r from-emerald-500 to-teal-500"
-    },
-    {
-      id: 3,
-      name: "Cash Back Supreme",
-      category: "cashback",
+      name: "Student Card",
+      category: "student",
       annualFee: 0,
-      apr: "14.99-23.99%",
+      apr: "16.99-24.99%",
       rewards: [
-        "2% cash back on all purchases",
-        "5% on rotating categories",
-        "$200 welcome bonus"
+        "1% cash back on all purchases",
+        "Bonus points for first 3 months"
       ],
       benefits: [
         "No annual fee",
-        "Cell phone protection",
-        "Extended warranty"
+        "Free credit score tracking",
+        "Flexible payment options"
       ],
       requirements: [
-        "Good credit score (680+)",
-        "Stable income",
-        "US resident"
+        "Must be a full-time student",
+        "Valid student ID"
       ],
-      color: "bg-gradient-to-r from-orange-500 to-pink-500"
+      color: "bg-gradient-to-r from-green-500 to-teal-500"
     }
   ];
+
+  const handleApplyNow = (card) => {
+    setSelectedCard(card);
+    setIsModalOpen(true);
+  };
+
+  // Function to submit the account number and card details to the backend
+  const handleSubmitAccountNumber = async () => {
+    if (accountNumber) {
+      try {
+        // Send POST request to the backend
+        const response = await fetch('/api/dash/acad/ccapps', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            accountID: accountNumber,  // Assuming accountID is equivalent to the accountNumber entered by the user
+            cardType: selectedCard.category,  // 'premium' or 'student'
+          }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          alert(`Loan application for the ${selectedCard.name} has been successfully submitted!`);
+        } else {
+          alert(`Error: ${result.message}`);
+        }
+      } catch (error) {
+        console.error('Error submitting loan application:', error);
+        alert('Failed to submit the loan application. Please try again.');
+      }
+      setIsModalOpen(false);
+      setAccountNumber('');
+    } else {
+      alert('Please enter a valid account number.');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -141,9 +158,8 @@ const CreditCardPortal = () => {
               onChange={(e) => setSelectedCategory(e.target.value)}
             >
               <option value="all">All Categories</option>
-              <option value="rewards">Rewards</option>
-              <option value="travel">Travel</option>
-              <option value="cashback">Cash Back</option>
+              <option value="premium">Premium</option>
+              <option value="student">Student</option>
             </select>
           </div>
 
@@ -216,7 +232,10 @@ const CreditCardPortal = () => {
                       </ul>
                     </div>
 
-                    <button className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg font-medium transition-colors">
+                    <button
+                      className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg font-medium transition-colors"
+                      onClick={() => handleApplyNow(card)}
+                    >
                       Apply Now
                     </button>
                   </div>
@@ -224,6 +243,36 @@ const CreditCardPortal = () => {
               </Card>
             ))}
           </div>
+
+          {/* Modal to Ask for Account Number */}
+          {isModalOpen && (
+            <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
+              <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+                <h3 className="text-xl font-semibold mb-4">Enter Account Number</h3>
+                <input
+                  type="text"
+                  value={accountNumber}
+                  onChange={(e) => setAccountNumber(e.target.value)}
+                  placeholder="Account Number"
+                  className="w-full p-3 border border-gray-300 rounded-lg mb-4"
+                />
+                <div className="flex justify-between gap-4">
+                  <button
+                    className="bg-gray-500 text-white p-3 rounded-lg w-1/2"
+                    onClick={() => setIsModalOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="bg-blue-500 text-white p-3 rounded-lg w-1/2"
+                    onClick={handleSubmitAccountNumber}
+                  >
+                    Submit
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

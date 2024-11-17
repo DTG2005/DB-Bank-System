@@ -1,120 +1,127 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import type { OkPacket, RowDataPacket } from 'mysql2';
-import { db } from '@/lib/loan-utils';
+import express, { Request, Response } from 'express';
+import bodyParser from 'body-parser';
+import { pool } from '@/lib/loan-utils';
 
-interface LoanType {
-  title: string;
-  interestRate: number;
-  loanLimit: number;
-  maxTimePeriod: number;
+// Create an Express application
+const app = express();
+const port = 3000;
+
+// Body parser middleware to handle JSON requests
+app.use(bodyParser.json());
+
+// Interface for loan application request
+interface LoanApplicationRequest {
+  accountNumber: number;
+  loanAmount: number;
+  loanTerm: number;
+  selectedLoanType: string;
+  collateral: string;
+  startDate: string;
+  endDate: string;
 }
 
-export const loanTypes: LoanType[] = [
-  {
-    title: 'Personal Loan',
-    interestRate: 8.99,
-    loanLimit: 1000000,
-    maxTimePeriod: 120, // in months (10 years)
-  },
-  {
-    title: 'Student Loan',
-    interestRate: 4.99,
-    loanLimit: 100000,
-    maxTimePeriod: 180, // in months (15 years)
-  },
-];
+// Endpoint to handle loan application submission
+app.post('/loan', async (req: Request<{}, {}, LoanApplicationRequest>, res: Response) => {
+  const { 
+    accountNumber, 
+    loanAmount, 
+    loanTerm, 
+    selectedLoanType, 
+    collateral, 
+    startDate, 
+    endDate 
+  } = req.body;
 
-export async function GET(request: NextRequest) {
-  return NextResponse.json(loanTypes);
-}
-
-export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { accountNumber, loanType, principalAmount, collateral, timePeriod } = body;
-
-    if (!accountNumber || !loanType || !principalAmount || !collateral || !timePeriod) {
-      return NextResponse.json(
-        { message: 'All fields are required.' },
-        { status: 400 }
-      );
+    // First, retrieve the CustomerID using the AccountNumber
+    const customerQuery = `
+      SELECT CustomerID 
+      FROM Account 
+      WHERE AccountNumber = ?
+    `;
+    
+    const [customerResult] = await pool.query(customerQuery, [accountNumber]);
+    const customerRows = customerResult as any[];
+    
+    if (!customerRows || customerRows.length === 0) {
+      return res.status(404).json({ 
+        message: 'Account not found.' 
+      });
     }
+    
+    const customerID = customerRows[0].CustomerID;
 
-    // Connect to the database and get CustomerID using AccountNumber
-    const connection = await db.getConnection();
-    const [rows] = await connection.execute<RowDataPacket[]>(
-      `SELECT CustomerID FROM Account WHERE AccountNumber = ?`,
-      [accountNumber]
-    );
+    // Calculate the interest rate based on the loan type
+    const interestRates: { [key: string]: number } = {
+      personal: 8.5,
+      student: 5.5,
+    };
 
-    if (rows.length === 0) {
-      connection.release();
-      return NextResponse.json(
-        { message: 'Account not found.' },
-        { status: 404 }
-      );
-    }
+    const interestRate = interestRates[selectedLoanType] || 8.5; // Default to personal loan rate if invalid
+    const monthlyPayment = calculateMonthlyPayment(loanAmount, loanTerm, interestRate);
+    const totalPayment = monthlyPayment * loanTerm;
 
-    const customerID = rows[0].CustomerID;
+    // Insert loan application into the Loan table
+    const insertQuery = `
+      INSERT INTO Loan (
+        CustomerID, 
+        LoanType, 
+        PrincipleAmount, 
+        InterestRate, 
+        StartDate, 
+        EndDate, 
+        MonthlyPayment, 
+        Collateral
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `;
 
-    // Find the selected loan type
-    const selectedLoan = loanTypes.find((loan) => loan.title === loanType);
-    if (!selectedLoan) {
-      connection.release();
-      return NextResponse.json(
-        { message: 'Invalid loan type.' },
-        { status: 400 }
-      );
-    }
+    const values = [
+      customerID,
+      selectedLoanType,
+      loanAmount,
+      interestRate,
+      startDate,
+      endDate,
+      monthlyPayment,
+      collateral,
+    ];
 
-    // Check if the principal amount is within the loan limit
-    if (principalAmount > selectedLoan.loanLimit) {
-      connection.release();
-      return NextResponse.json(
-        { message: `Loan amount exceeds the limit of $${selectedLoan.loanLimit.toLocaleString()}.` },
-        { status: 400 }
-      );
-    }
+    // Execute the insert query
+    const [insertResult] = await pool.query(insertQuery, values);
+    const insertId = (insertResult as any).insertId;
 
-    // Calculate the monthly payment using the loan formula
-    const interestRate = selectedLoan.interestRate / 100; // Convert to decimal
-    const monthlyRate = interestRate / 12; // Monthly interest rate
-    const numberOfPayments = timePeriod; // Loan time period in months
+    // Send the success response
+    res.status(200).json({
+      message: 'Loan application submitted successfully!',
+      loanID: insertId,
+      customerID: customerID,
+      monthlyPayment: monthlyPayment.toFixed(2),
+      totalPayment: totalPayment.toFixed(2),
+    });
 
-    const monthlyPayment =
-      (principalAmount * monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) /
-      (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
-
-    // Insert the loan application into the database
-    const startDate = new Date();
-    const endDate = new Date();
-    endDate.setMonth(endDate.getMonth() + timePeriod);
-
-    const [result] = await connection.execute<OkPacket>(
-      `INSERT INTO Loan (CustomerID, LoanType, PrincipalAmount, Collateral, StartDate, EndDate, MonthlyPayment) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [customerID, loanType, principalAmount, collateral, startDate, endDate, monthlyPayment]
-    );
-
-    connection.release();
-
-    if (result.affectedRows > 0) {
-      return NextResponse.json(
-        { message: 'Loan application submitted successfully.' },
-        { status: 201 }
-      );
-    } else {
-      return NextResponse.json(
-        { message: 'Failed to submit loan application.' },
-        { status: 500 }
-      );
-    }
-
-  } catch (error: any) {
-    return NextResponse.json(
-      { message: 'Error processing loan application: ' + error.message },
-      { status: 500 }
-    );
+  } catch (err) {
+    console.error('Error:', err);
+    res.status(500).json({ 
+      message: 'Error processing the loan application.',
+      error: err instanceof Error ? err.message : 'Unknown error'
+    });
   }
+});
+
+// Function to calculate the monthly payment
+function calculateMonthlyPayment(principal: number, months: number, interestRate: number): number {
+  const monthlyRate = (interestRate / 100) / 12;
+  const numberOfPayments = months;
+
+  const monthlyPayment =
+    (principal * monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) /
+    (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
+
+  return isNaN(monthlyPayment) ? 0 : monthlyPayment;
 }
+
+// Start the server
+app.listen(port, () => {
+  console.log(`Server is running on http://localhost:${port}`);
+});
