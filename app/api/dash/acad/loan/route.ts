@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import bodyParser from 'body-parser';
 import { pool } from '@/lib/loan-utils';
+import { addMonths, format } from 'date-fns';
 
 // Create an Express application
 const app = express();
@@ -13,11 +14,10 @@ app.use(bodyParser.json());
 interface LoanApplicationRequest {
   accountNumber: number;
   loanAmount: number;
-  loanTerm: number;
+  loanTerm: number; // in months
   selectedLoanType: string;
-  collateral: string;
-  startDate: string;
-  endDate: string;
+  loanPurpose: string;
+  startDate: string; // in YYYY-MM-DD format
 }
 
 // Endpoint to handle loan application submission
@@ -27,13 +27,12 @@ app.post('/loan', async (req: Request<{}, {}, LoanApplicationRequest>, res: Resp
     loanAmount, 
     loanTerm, 
     selectedLoanType, 
-    collateral, 
-    startDate, 
-    endDate 
+    loanPurpose, 
+    startDate 
   } = req.body;
 
   try {
-    // First, retrieve the CustomerID using the AccountNumber
+    // Retrieve the CustomerID using the AccountNumber
     const customerQuery = `
       SELECT CustomerID 
       FROM Account 
@@ -58,8 +57,13 @@ app.post('/loan', async (req: Request<{}, {}, LoanApplicationRequest>, res: Resp
     };
 
     const interestRate = interestRates[selectedLoanType] || 8.5; // Default to personal loan rate if invalid
+
+    // Calculate monthly payment
     const monthlyPayment = calculateMonthlyPayment(loanAmount, loanTerm, interestRate);
     const totalPayment = monthlyPayment * loanTerm;
+
+    // Calculate the end date
+    const endDate = format(addMonths(new Date(startDate), loanTerm), 'yyyy-MM-dd');
 
     // Insert loan application into the Loan table
     const insertQuery = `
@@ -84,7 +88,7 @@ app.post('/loan', async (req: Request<{}, {}, LoanApplicationRequest>, res: Resp
       startDate,
       endDate,
       monthlyPayment,
-      collateral,
+      loanPurpose,
     ];
 
     // Execute the insert query
@@ -98,6 +102,8 @@ app.post('/loan', async (req: Request<{}, {}, LoanApplicationRequest>, res: Resp
       customerID: customerID,
       monthlyPayment: monthlyPayment.toFixed(2),
       totalPayment: totalPayment.toFixed(2),
+      startDate: startDate,
+      endDate: endDate,
     });
 
   } catch (err) {
