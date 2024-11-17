@@ -6,22 +6,66 @@ import bcrypt from "bcryptjs";
 export async function POST(req: NextRequest) {
   try {
     const textBody = await req.text();
-    const { mobile, email, password } = JSON.parse(textBody);
+    const {
+      firstName,
+      middleName,
+      lastName,
+      email,
+      password,
+      confirmPassword,
+      mobile,
+      accountType,
+      address,
+      dob,
+      identificationNumber,
+    } = JSON.parse(textBody);
 
     // Use ?? operator to replace undefined with null for SQL
     const mobileValue = mobile ?? null;
     console.log("email:" + email);
     const emailValue = email === undefined ? null : email;
-    const passwordValue = password ? await bcrypt.hash(password, 10) : null;
+    const passwordValue = password ? password : null;
+    const accountTypeValue = accountType ? accountType : null;
+    const addressValue = address ? address : null;
+    const dobValue = dob ? dob : null;
+    const identificationNumberValue = identificationNumber
+      ? identificationNumber
+      : null;
 
-    const createTableQuery =
-      "CREATE TABLE IF NOT EXISTS users (mobile VARCHAR(20), email VARCHAR(255), passwordValue VARCHAR(255))";
-    await db.execute(createTableQuery);
+    if (
+      !firstName ||
+      !middleName ||
+      !lastName ||
+      !email ||
+      !password ||
+      !confirmPassword ||
+      !mobile ||
+      !accountType ||
+      !address ||
+      !dob
+      // !identificationNumber
+    ) {
+      return NextResponse.json(
+        { error: "All fields are required." + textBody },
+        { status: 400 }
+      );
+    }
+
+    if (password !== confirmPassword) {
+      return NextResponse.json(
+        { error: "Passwords do not match." },
+        { status: 400 }
+      );
+    }
+
+    // const createTableQuery =
+    //   "CREATE TABLE IF NOT EXISTS customer (mobile VARCHAR(20), email VARCHAR(255), passwordValue VARCHAR(255))";
+    // await db.execute(createTableQuery);
 
     const query =
-      "INSERT INTO users (mobile, email, passwordValue) VALUES (?, ?, ?)";
+      "INSERT INTO customer (Firstname, Middlename, Lastname, ) VALUES (?, ?, ?)";
     const values = [mobileValue, emailValue, passwordValue];
-    await db.execute(query, values);
+    const value1 = await db.execute(query, values);
 
     return NextResponse.json(
       { message: "User registered successfully!" },
