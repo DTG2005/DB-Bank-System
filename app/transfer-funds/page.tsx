@@ -8,22 +8,22 @@ import {
   Home,
   History,
   ArrowLeftRight,
-  Plus,
-  ArrowRight,
   Search,
   Clock,
 } from "lucide-react";
 import DashNavBar from "../dashboard/dashnavbar";
 
 const TransferFundsPage = () => {
+  const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
-  const [selectedBank, setSelectedBank] = useState(null);
+  const [senderAccount, setSenderAccount] = useState("");
+  const [recipientAccount, setRecipientAccount] = useState("");
+  const [description, setDescription] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const userInfo = {
-    name: "Adrian",
-    fullName: "Adrian JSM",
-    email: "contact@jsmastery.pro",
-    currentBalance: 1250.35,
     accounts: [
       {
         id: 1,
@@ -60,6 +60,70 @@ const TransferFundsPage = () => {
     ],
   };
 
+  // Handle transfer
+  const handleTransfer = async (e: React.FormEvent) => {
+    setLoading(true);
+    setErrorMessage("");
+
+    // Request data for transfer
+    console.log("Starting transfer...");
+    console.log("Sender Account:", senderAccount);
+    console.log("Recipient Account:", recipientAccount);
+    console.log("Amount:", amount);
+    console.log("Description:", description);
+    console.log("Sender Name:", name);
+    if (
+      !name ||
+      !senderAccount ||
+      !recipientAccount ||
+      !amount ||
+      isNaN(Number(amount)) ||
+      Number(amount) <= 0
+    ) {
+      setError("Please fill out all fields correctly.");
+      setLoading(false); // Stop loading if validation fails
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/auth/transaction", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          transactionType: "TRANSFER", // Transaction type is 'TRANSFER'
+          details: {
+            senderAccountNumber: senderAccount, // Send sender account ID
+            senderName: name, // Send sender's full name
+            recipientAccountNumber: recipientAccount, // Send recipient account ID
+            amount: Number(amount),
+            description: description, // Send amount to transfer
+          },
+        }),
+      });
+      console.log("Response status:", response.status);
+
+      const result = await response.json();
+      if (!response.ok) {
+        const { error } = await response.json();
+        throw new Error(error || "Transaction failed");
+      }
+      if (response.ok) {
+        // handle success (reset fields or display success message)
+        alert("Transfer Successful!");
+      } else {
+        setErrorMessage(
+          result.error || "An error occurred. Please try again later."
+        );
+      }
+    } catch (error) {
+      setErrorMessage("An error occurred. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Left Sidebar */}
@@ -84,7 +148,7 @@ const TransferFundsPage = () => {
                   <CardTitle>Make a Transfer</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-6">
+                  <form onSubmit={handleTransfer} className="space-y-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Enter Your Full Name
@@ -93,6 +157,9 @@ const TransferFundsPage = () => {
                         <input
                           type="text"
                           placeholder="Search bank or account number"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          required
                           className="w-full p-3 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                         <Search className="w-5 h-5 text-gray-400 absolute right-3 top-1/2 transform -translate-y-1/2" />
@@ -107,6 +174,9 @@ const TransferFundsPage = () => {
                       <div className="relative">
                         <input
                           type="text"
+                          value={senderAccount}
+                          onChange={(e) => setSenderAccount(e.target.value)}
+                          required
                           placeholder="Search bank or account number"
                           className="w-full p-3 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
@@ -122,6 +192,9 @@ const TransferFundsPage = () => {
                       <div className="relative">
                         <input
                           type="text"
+                          value={recipientAccount}
+                          onChange={(e) => setRecipientAccount(e.target.value)}
+                          required
                           placeholder="Search bank or account number"
                           className="w-full p-3 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
@@ -157,14 +230,34 @@ const TransferFundsPage = () => {
                         placeholder="Add a note to this transfer"
                         className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         rows={3}
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
                       />
                     </div>
 
                     {/* Transfer Button */}
-                    <button className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg font-medium transition-colors">
-                      Transfer Now
+                    <button
+                      type="submit"
+                      className={`w-full py-3 rounded-lg font-medium transition-colors ${
+                        loading
+                          ? "bg-gray-400"
+                          : "bg-blue-500 hover:bg-blue-600 text-white"
+                      }`}
+                      disabled={loading}
+                    >
+                      {loading ? "Processing..." : "Transfer Now"}
                     </button>
-                  </div>
+
+                    {/* Error Message */}
+                    {errorMessage && (
+                      <p className="text-red-600 text-sm mt-2">
+                        {errorMessage}
+                      </p>
+                    )}
+                    {error && (
+                      <p className="text-red-600 text-sm mt-2">{error}</p>
+                    )}
+                  </form>
                 </CardContent>
               </Card>
             </div>

@@ -12,20 +12,21 @@ enum TransactionType {
 
 // Interface for transaction details
 interface TransferDetails {
-  senderAccountId: string;
+  senderAccountNumber: string;
   senderName: string;
-  recipientAccountId: string;
+  recipientAccountNumber: string;
   amount: number;
+  description : string;
 }
 
 interface WithdrawDetails {
-  accountId: string;
+  accountNumber: string;
   amount: number;
   name: string;
 }
 
 interface DepositDetails {
-  accountId: string;
+  accountNumber: string;
   amount: number;
   name: string;
 }
@@ -46,155 +47,156 @@ async function handleTransaction(transactionType: TransactionType, details: Tran
 
     switch (transactionType) {
       case TransactionType.TRANSFER: {
-        const { senderAccountId, senderName, recipientAccountId, amount } = details as TransferDetails;
-      
-    
+        const { senderAccountNumber, senderName, recipientAccountNumber, amount,description } = details as TransferDetails;
+
+        // 1. Retrieve sender account details using AccountNumber
         const [senderResult]: [RowDataPacket[], FieldPacket[]] = await connection.query(
-          `SELECT a.AccountID, c.Firstname, c.Middlename, c.Lastname 
+          `SELECT a.AccountID, a.BranchID, a.Balance, c.Firstname, c.Middlename, c.Lastname 
            FROM Account a 
            JOIN Customer c ON a.CustomerID = c.CustomerID 
-           WHERE a.AccountID = ?`,
-          [senderAccountId]
+           WHERE a.AccountNumber = ?`,
+          [senderAccountNumber]
         );
-
+        
         if (!senderResult.length) {
           throw new Error('Sender account not found');
         }
-
+        
         const sender = senderResult[0];
+        const senderAccountId = sender.AccountID; // Retrieved AccountID
         const fullSenderName = `${sender.Firstname} ${sender.Middlename} ${sender.Lastname}`.trim();
-
+        
         if (fullSenderName !== senderName.trim()) {
-          throw new Error('Sender information wrong!');
+          throw new Error('Sender information is incorrect!');
         }
-        const senderBranchId = sender.BranchID; // Get the BranchID from the Account table
-
-        // 2. Validate recipient account exists
+        
+        const senderBranchId = sender.BranchID;
+        
+        // 2. Validate recipient account exists using AccountNumber
         const [recipientResult]: [RowDataPacket[], FieldPacket[]] = await connection.query(
-          'SELECT * FROM Account WHERE AccountID = ?',
-          [recipientAccountId]
+          `SELECT a.AccountID 
+           FROM Account a 
+           WHERE a.AccountNumber = ?`,
+          [recipientAccountNumber]
         );
-
-        if (!recipientResult || recipientResult.length === 0) {
+        
+        if (!recipientResult.length) {
           throw new Error('Recipient account not found');
         }
-
+        
+        const recipientAccountId = recipientResult[0].AccountID; // Retrieved AccountID for recipient
+        
         // 3. Check sender balance
         if (sender.Balance < amount) {
           throw new Error('Insufficient funds');
         }
-
+        
         // 4. Perform transaction (debit sender, credit recipient)
         const transactionDate = new Date();
         const transactionDateFormatted = transactionDate.toISOString().split('T')[0]; // YYYY-MM-DD format
         const transactionTimeFormatted = transactionDate.toISOString().split('T')[1].split('.')[0]; // HH:MM:SS format
-
+        
         // Debit sender account
         await connection.query('UPDATE Account SET Balance = Balance - ? WHERE AccountID = ?', [amount, senderAccountId]);
+        
         // Credit recipient account
         await connection.query('UPDATE Account SET Balance = Balance + ? WHERE AccountID = ?', [amount, recipientAccountId]);
-
-        // Log the sender transaction
+        
+        // 5. Log the sender transaction
         await connection.query(
           `INSERT INTO Transaction (AccountID, BranchID, TransactionType, Amount, Status, TransactionDate, TransactionTime, Description, TransactionFrom, TransactionTo) 
-           VALUES (?, ?, 'TRANSFER', ?, true, ?, ?, 'Transfer to recipient account', ?, ?)`,
-          [senderAccountId, senderBranchId, amount, transactionDateFormatted, transactionTimeFormatted, senderAccountId, recipientAccountId]
+           VALUES (?, ?, 'TRANSFER', ?, true, ?, ?, ?, ?, ?)`,
+          [senderAccountId, senderBranchId, amount, transactionDateFormatted, transactionTimeFormatted, description, senderAccountId, recipientAccountId]
         );
-
-       
-
-        break;
+break;        
       }
 
-      case TransactionType.WITHDRAW: {
-        const { accountId, amount, name } = details as WithdrawDetails;
+      // case TransactionType.WITHDRAW: {
+      //   const { accountNumber, amount, name } = details as WithdrawDetails;
 
-        // Validate account and name
-        const [accountResult]: [RowDataPacket[], FieldPacket[]] = await connection.query(
-          `SELECT a.AccountID, c.Firstname, c.Middlename, c.Lastname, a.Balance 
-           FROM Account a 
-           JOIN Customer c ON a.CustomerID = c.CustomerID 
-           WHERE a.AccountID = ?`,
-          [accountId]
-        );
+      //   // 1. Validate account and name using AccountNumber
+      //   const [accountResult]: [RowDataPacket[], FieldPacket[]] = await connection.query(
+      //     `SELECT a.AccountID, a.BranchID, a.Balance, c.Firstname, c.Middlename, c.Lastname
+      //      FROM Account a 
+      //      JOIN Customer c ON a.CustomerID = c.CustomerID 
+      //      WHERE a.AccountNumber = ?`,  // Now using AccountNumber instead of AccountID
+      //     [accountNumber]
+      //   );
+        
+      //   if (!accountResult.length) {
+      //     throw new Error('Account not found');
+      //   }
+        
+      //   const account = accountResult[0];
+      //   const fullAccountName = `${account.Firstname} ${account.Middlename} ${account.Lastname}`.trim();
+        
+      //   // 2. Validate account holder's name
+      //   if (fullAccountName !== name.trim()) {
+      //     throw new Error('Incorrect information given!');
+      //   }
+        
+      //   // 3. Check balance before proceeding with the withdrawal
+      //   if (account.Balance < amount) {
+      //     throw new Error('Insufficient funds');
+      //   }
+        
+      //   // 4. Perform withdrawal operation
+      //   await connection.query('UPDATE Account SET Balance = Balance - ? WHERE AccountNumber = ?', [amount, accountNumber]);
+        
+      //   // 5. Log the transaction
+      //   const transactionDate = new Date();
+      //   const transactionDateFormatted = transactionDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+      //   const transactionTimeFormatted = transactionDate.toISOString().split('T')[1].split('.')[0]; // HH:MM:SS format
+        
+      //   // 6. Insert the transaction record into the Transaction table
+      //   await connection.query(
+      //     `INSERT INTO Transaction (AccountID, BranchID, TransactionType, Amount, Status, TransactionDate, TransactionTime, Description, TransactionFrom) 
+      //      VALUES (?, ?, 'WITHDRAW', ?, true, ?, ?, 'Withdraw from account', ?)`,
+      //     [account.AccountID, account.BranchID, amount, transactionDateFormatted, transactionTimeFormatted, account.AccountID]
+      //   );
+      //   break;
+      // }
 
-        if (!accountResult.length) {
-          throw new Error('Account not found');
-        }
+      // case TransactionType.DEPOSIT: {
+      //   const { accountNumber, amount, name } = details as DepositDetails;
 
-        const account = accountResult[0];
-        const fullAccountName = `${account.Firstname} ${account.Middlename} ${account.Lastname}`.trim();
-
-        if (fullAccountName !== name.trim()) {
-          throw new Error('Incorrect information given!');
-        }
-        // 3. Check balance
-        if (account.Balance < amount) {
-          throw new Error('Insufficient funds');
-        }
-
-        // 4. Retrieve BranchID from the Account table
-        const branchId = account.BranchID;
-
-        // 5. Perform withdrawal
-        await connection.query('UPDATE Account SET Balance = Balance - ? WHERE AccountID = ?', [amount, accountId]);
-
-        // Log the transaction
-        const transactionDate = new Date();
-        const transactionDateFormatted = transactionDate.toISOString().split('T')[0]; // YYYY-MM-DD format
-        const transactionTimeFormatted = transactionDate.toISOString().split('T')[1].split('.')[0]; // HH:MM:SS format
-
-        await connection.query(
-          `INSERT INTO Transaction (AccountID, BranchID, TransactionType, Amount, Status, TransactionDate, TransactionTime, Description, TransactionFrom) 
-           VALUES (?, ?, 'WITHDRAW', ?, true, ?, ?, 'Withdraw from account', ?)`,
-          [accountId, branchId, amount, transactionDateFormatted, transactionTimeFormatted, accountId]
-        );
-
-        break;
-      }
-
-      case TransactionType.DEPOSIT: {
-        const { accountId, amount, name } = details as DepositDetails;
-
-        // 1. Validate account exists and fetch account details
-        // Validate account and name
-        const [accountResult]: [RowDataPacket[], FieldPacket[]] = await connection.query(
-          `SELECT a.AccountID, c.Firstname, c.Middlename, c.Lastname 
-           FROM Account a 
-           JOIN Customer c ON a.CustomerID = c.CustomerID 
-           WHERE a.AccountID = ?`,
-          [accountId]
-        );
-
-        if (!accountResult.length) {
-          throw new Error('Account not found');
-        }
-
-        const account = accountResult[0];
-        const fullAccountName = `${account.Firstname} ${account.Middlename} ${account.Lastname}`.trim();
-
-        if (fullAccountName !== name.trim()) {
-          throw new Error('Incorrect information given!');
-        }
-        // 3. Retrieve BranchID from the Account table
-        const branchId = account.BranchID;
-
-        // 4. Perform deposit
-        await connection.query('UPDATE Account SET Balance = Balance + ? WHERE AccountID = ?', [amount, accountId]);
-
-        // Log the transaction
-        const transactionDate = new Date();
-        const transactionDateFormatted = transactionDate.toISOString().split('T')[0]; // YYYY-MM-DD format
-        const transactionTimeFormatted = transactionDate.toISOString().split('T')[1].split('.')[0]; // HH:MM:SS format
-
-        await connection.query(
-          `INSERT INTO Transaction (AccountID, BranchID, TransactionType, Amount, Status, TransactionDate, TransactionTime, Description, TransactionTo) 
-           VALUES (?, ?, 'DEPOSIT', ?, true, ?, ?, 'Deposit to account', ?)`,
-          [accountId, branchId, amount, transactionDateFormatted, transactionTimeFormatted, accountId]
-        );
-
-        break;
-      }
+      //   // 1. Validate account and name using AccountNumber
+      //   const [accountResult]: [RowDataPacket[], FieldPacket[]] = await connection.query(
+      //     `SELECT a.AccountID, a.BranchID, a.Balance, c.Firstname, c.Middlename, c.Lastname
+      //      FROM Account a 
+      //      JOIN Customer c ON a.CustomerID = c.CustomerID 
+      //      WHERE a.AccountNumber = ?`,  // Now using AccountNumber instead of AccountID
+      //     [accountNumber]
+      //   );
+        
+      //   if (!accountResult.length) {
+      //     throw new Error('Account not found');
+      //   }
+        
+      //   const account = accountResult[0];
+      //   const fullAccountName = `${account.Firstname} ${account.Middlename} ${account.Lastname}`.trim();
+        
+      //   // 2. Validate account holder's name
+      //   if (fullAccountName !== name.trim()) {
+      //     throw new Error('Incorrect information given!');
+      //   }
+        
+      //   // 3. Perform deposit operation
+      //   await connection.query('UPDATE Account SET Balance = Balance + ? WHERE AccountNumber = ?', [amount, accountNumber]);
+        
+      //   // 4. Log the transaction
+      //   const transactionDate = new Date();
+      //   const transactionDateFormatted = transactionDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+      //   const transactionTimeFormatted = transactionDate.toISOString().split('T')[1].split('.')[0]; // HH:MM:SS format
+        
+      //   // 5. Insert the transaction record into the Transaction table
+      //   await connection.query(
+      //     `INSERT INTO Transaction (AccountID, BranchID, TransactionType, Amount, Status, TransactionDate, TransactionTime, Description, TransactionTo) 
+      //      VALUES (?, ?, 'DEPOSIT', ?, true, ?, ?, 'Deposit to account', ?)`,
+      //     [account.AccountID, account.BranchID, amount, transactionDateFormatted, transactionTimeFormatted, account.AccountID]
+      //   );
+      //   break;
+      // }
       case TransactionType.BILL_PAYMENT: {
         const { accountId, billType, amount } = details as BillPaymentDetails;
 
@@ -271,15 +273,28 @@ export async function POST(req: NextRequest) {
 
 // Handle GET request for transaction history
 export async function GET(req: NextRequest) {
-  const accountId = req.nextUrl.searchParams.get('accountId');
+  const accountNumber = req.nextUrl.searchParams.get('accountNumber');
 
-  if (!accountId) {
-    return NextResponse.json({ error: 'Account ID is required' }, { status: 400 });
+  if (!accountNumber) {
+    return NextResponse.json({ error: 'Account number is required' }, { status: 400 });
   }
 
+  // Retrieve the corresponding `accountId` from the `accounts` table
   const connection = await db.getConnection();
 
   try {
+    const [accountResult]: [RowDataPacket[], FieldPacket[]] = await connection.query(
+      'SELECT AccountID FROM account WHERE AccountNumber = ?',
+      [accountNumber]
+    );
+
+    if (accountResult.length === 0) {
+      return NextResponse.json({ error: 'Account number not found' }, { status: 404 });
+    }
+
+    const accountId = accountResult[0].AccountID;
+
+    // Fetch transactions for the retrieved `accountId`
     const [transactions]: [RowDataPacket[], FieldPacket[]] = await connection.query(
       `
       SELECT *,
@@ -288,8 +303,8 @@ export async function GET(req: NextRequest) {
           WHEN TransactionTo = ? THEN 'incoming' 
         END AS transactionType
       FROM Transaction 
-      WHERE TRansactionFrom = ? OR TransactionTo = ?
-      ORDER BY TransactionDate DESC
+      WHERE TransactionFrom = ? OR TransactionTo = ?
+       ORDER BY TransactionID DESC
       `,
       [accountId, accountId, accountId, accountId]
     );
