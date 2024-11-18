@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from "../../../../lib/db";  // Ensure this path is correct
-import { RowDataPacket, FieldPacket } from 'mysql2';
+import { ResultSetHeader,RowDataPacket, FieldPacket } from 'mysql2';
 
 // Enum to define transaction types
 enum TransactionType {
   TRANSFER = 'TRANSFER',
-  WITHDRAW = 'WITHDRAW',
-  DEPOSIT = 'DEPOSIT',
+  // WITHDRAW = 'WITHDRAW',
+  // DEPOSIT = 'DEPOSIT',
   BILL_PAYMENT = 'BILL_PAYMENT'
 }
 
@@ -74,7 +74,7 @@ async function handleTransaction(transactionType: TransactionType, details: Tran
         
         // 2. Validate recipient account exists using AccountNumber
         const [recipientResult]: [RowDataPacket[], FieldPacket[]] = await connection.query(
-          `SELECT a.AccountID 
+          `SELECT a.AccountID, a.BranchID
            FROM Account a 
            WHERE a.AccountNumber = ?`,
           [recipientAccountNumber]
@@ -85,7 +85,7 @@ async function handleTransaction(transactionType: TransactionType, details: Tran
         }
         
         const recipientAccountId = recipientResult[0].AccountID; // Retrieved AccountID for recipient
-        
+        const recipientBranchId = recipientResult[0].BranchID; 
         // 3. Check sender balance
         if (sender.Balance < amount) {
           throw new Error('Insufficient funds');
@@ -103,11 +103,36 @@ async function handleTransaction(transactionType: TransactionType, details: Tran
         await connection.query('UPDATE Account SET Balance = Balance + ? WHERE AccountID = ?', [amount, recipientAccountId]);
         
         // 5. Log the sender transaction
-        await connection.query(
+        const [transactionResult] = await connection.query(
           `INSERT INTO Transaction (AccountID, BranchID, TransactionType, Amount, Status, TransactionDate, TransactionTime, Description, TransactionFrom, TransactionTo) 
            VALUES (?, ?, 'TRANSFER', ?, true, ?, ?, ?, ?, ?)`,
           [senderAccountId, senderBranchId, amount, transactionDateFormatted, transactionTimeFormatted, description, senderAccountId, recipientAccountId]
         );
+
+        const transactionId = (transactionResult as ResultSetHeader).insertId;  // Get the TransactionID of the inserted record
+
+        // Insert into the Account_Transaction table for sender account
+        await connection.query(
+            `INSERT INTO Account_Transaction (AccountID, TransactionID) VALUES (?, ?)`,
+            [senderAccountId, transactionId]
+        );
+    
+        // Insert into the Account_Transaction table for recipient account
+        await connection.query(
+            `INSERT INTO Account_Transaction (AccountID, TransactionID) VALUES (?, ?)`,
+            [recipientAccountId, transactionId]
+        );
+           // 8. Insert into Branch_Transaction table to link the transaction with both the sender's and recipient's branches
+    await connection.query(
+      `INSERT INTO Branch_Transaction (BranchID, TransactionID) VALUES (?, ?)`,
+      [senderBranchId, transactionId]
+    );
+
+    // Insert recipient's branch in the Branch_Transaction table
+    await connection.query(
+      `INSERT INTO Branch_Transaction (BranchID, TransactionID) VALUES (?, ?)`,
+      [recipientBranchId, transactionId]
+    );
 break;        
       }
 
@@ -279,10 +304,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Account number is required' }, { status: 400 });
   }
 
-  // Retrieve the corresponding `accountId` from the `accounts` table
+  // Get the database connection
   const connection = await db.getConnection();
 
   try {
+    // Retrieve the corresponding `accountId` from the `account` table
     const [accountResult]: [RowDataPacket[], FieldPacket[]] = await connection.query(
       'SELECT AccountID FROM account WHERE AccountNumber = ?',
       [accountNumber]
@@ -294,24 +320,37 @@ export async function GET(req: NextRequest) {
 
     const accountId = accountResult[0].AccountID;
 
-    // Fetch transactions for the retrieved `accountId`
+    // Now, retrieve the transactions for this account by querying the Account_Transaction table
+    const [accountTransactions]: [RowDataPacket[], FieldPacket[]] = await connection.query(
+      `SELECT at.TransactionID
+       FROM Account_Transaction at
+       WHERE at.AccountID = ?`,
+      [accountId]
+    );
+
+    if (accountTransactions.length === 0) {
+      return NextResponse.json({ error: 'No transactions found for this account' }, { status: 404 });
+    }
+
+    // Extract the TransactionIDs
+    const transactionIds = accountTransactions.map((row) => row.TransactionID);
+
+    // Retrieve the transaction details from the Transaction table using the TransactionIDs
     const [transactions]: [RowDataPacket[], FieldPacket[]] = await connection.query(
-      `
-      SELECT *,
-        CASE 
-          WHEN TransactionFrom = ? THEN 'outgoing' 
-          WHEN TransactionTo = ? THEN 'incoming' 
-        END AS transactionType
-      FROM Transaction 
-      WHERE TransactionFrom = ? OR TransactionTo = ?
-       ORDER BY TransactionID DESC
-      `,
-      [accountId, accountId, accountId, accountId]
+      `SELECT t.*, 
+              CASE 
+                WHEN t.TransactionFrom = ? THEN 'outgoing' 
+                WHEN t.TransactionTo = ? THEN 'incoming' 
+              END AS transactionType
+       FROM Transaction t
+       WHERE t.TransactionID IN (?) 
+       ORDER BY t.TransactionID DESC`,
+      [accountId, accountId, transactionIds]
     );
 
     return NextResponse.json({ transactions }, { status: 200 });
   } catch (error) {
-    console.error("Error handling transaction:", error);
+    console.error('Error fetching transaction history:', error);
     return NextResponse.json({ error: 'An error occurred while fetching transaction history' }, { status: 500 });
   } finally {
     connection.release();
