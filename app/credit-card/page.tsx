@@ -152,29 +152,20 @@ const CreditCardPortal = () => {
               />
               <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
             </div>
-            <select
-              className="p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-            >
-              <option value="all">All Categories</option>
-              <option value="premium">Premium</option>
-              <option value="student">Student</option>
-            </select>
           </div>
 
           {/* Credit Cards Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             {creditCards.map((card) => (
-              <Card key={card.id} className="overflow-hidden hover:shadow-lg transition-all">
-                <div className={`h-32 ${card.color} p-6`}>
+              <Card key={card.id} className="overflow-hidden hover:shadow-lg transition-all w-full">
+                <div className={`h-24 ${card.color} p-4`}> {/* Reduced height */}
                   <div className="flex justify-between items-start">
                     <h3 className="text-xl font-semibold text-white">{card.name}</h3>
                     <CreditCard className="w-8 h-8 text-white opacity-75" />
                   </div>
                 </div>
 
-                <CardContent className="p-6">
+                <CardContent className="p-4"> {/* Reduced padding */}
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <p className="text-sm text-gray-600">Annual Fee</p>

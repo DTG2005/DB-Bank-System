@@ -1,133 +1,145 @@
-import express, { Request, Response } from 'express';
-import bodyParser from 'body-parser';
-import { pool } from '@/lib/loan-utils';
-import { addMonths, format } from 'date-fns';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { db } from '@/lib/loan-utils';  // Ensure you have a database utility file
 
-// Create an Express application
-const app = express();
-const port = 3000;
-
-// Body parser middleware to handle JSON requests
-app.use(bodyParser.json());
-
-// Interface for loan application request
-interface LoanApplicationRequest {
-  accountNumber: number;
-  loanAmount: number;
-  loanTerm: number; // in months
-  selectedLoanType: string;
-  loanPurpose: string;
-  startDate: string; // in YYYY-MM-DD format
+interface LoanType {
+  title: string;
+  interestRate: number;
+  loanLimit: number;
+  maxTimePeriod: number;
 }
 
-// Endpoint to handle loan application submission
-app.post('/loan', async (req: Request<{}, {}, LoanApplicationRequest>, res: Response) => {
-  const { 
-    accountNumber, 
-    loanAmount, 
-    loanTerm, 
-    selectedLoanType, 
-    loanPurpose, 
-    startDate 
-  } = req.body;
+export const loanTypes: LoanType[] = [
+  {
+    title: 'Personal Loan',
+    interestRate: 8.5,
+    loanLimit: 1000000,
+    maxTimePeriod: 360, // in months (30 years)
+  },
+  {
+    title: 'Student Loan',
+    interestRate: 5.5,
+    loanLimit: 1000000,
+    maxTimePeriod: 360, // in months (5 years)
+  },
+];
 
+export async function POST(request: NextRequest) {
   try {
-    // Retrieve the CustomerID using the AccountNumber
-    const customerQuery = `
-      SELECT CustomerID 
-      FROM Account 
-      WHERE AccountNumber = ?
-    `;
-    
-    const [customerResult] = await pool.query(customerQuery, [accountNumber]);
-    const customerRows = customerResult as any[];
-    
-    if (!customerRows || customerRows.length === 0) {
-      return res.status(404).json({ 
-        message: 'Account not found.' 
-      });
+    // Ensure content-type is application/json
+    if (request.headers.get('content-type') !== 'application/json') {
+      return NextResponse.json(
+        { message: 'Invalid content type. Expected application/json.' },
+        { status: 400 }
+      );
     }
+
+    // Parse the incoming request body
+    const body = await request.json();
+    console.log('Received body:', body);  // Log the received body for debugging
+
+    const { accountNumber, loanType, principalAmount, collateral, timePeriod } = body;
+
+    if (!accountNumber || !loanType || !principalAmount || !collateral || !timePeriod) {
+      console.error('Missing fields:', body);  // Log missing fields
+      return NextResponse.json(
+        { message: 'All fields are required.' },
+        { status: 400 }
+      );
+    }
+
+    // Connect to the database and get CustomerID using AccountNumber
+    const connection = await db.getConnection();
+    const [rows] = await connection.execute<any[]>(
+      'SELECT CustomerID FROM Account WHERE AccountID = ?',
+      [accountNumber]
+    );
+
+    if (rows.length === 0) {
+      connection.release();
+      return NextResponse.json(
+        { message: 'Account not found.' },
+        { status: 404 }
+      );
+    }
+
+    const customerID = rows[0].CustomerID;
+
+    // Find the selected loan type
+    const selectedLoan = loanTypes.find(
+      (loan) => loan.title === loanType
+    );
     
-    const customerID = customerRows[0].CustomerID;
+    if (!selectedLoan) {
+      connection.release();
+      return NextResponse.json(
+        { message: 'Invalid loan type.' },
+        { status: 400 }
+      );
+    }
 
-    // Calculate the interest rate based on the loan type
-    const interestRates: { [key: string]: number } = {
-      personal: 8.5,
-      student: 5.5,
-    };
+    // Check if the principal amount is within the loan limit
+    if (principalAmount > selectedLoan.loanLimit) {
+      connection.release();
+      return NextResponse.json(
+        { message: `Loan amount exceeds the limit of $${selectedLoan.loanLimit.toLocaleString()}.` },
+        { status: 400 }
+      );
+    }
 
-    const interestRate = interestRates[selectedLoanType] || 8.5; // Default to personal loan rate if invalid
+    // Check if the time period is within the allowed limit for the loan type
+    if (timePeriod > selectedLoan.maxTimePeriod) {
+      connection.release();
+      return NextResponse.json(
+        { message: `Loan term exceeds the maximum allowed period of ${selectedLoan.maxTimePeriod} months.` },
+        { status: 400 }
+      );
+    }
 
-    // Calculate monthly payment
-    const monthlyPayment = calculateMonthlyPayment(loanAmount, loanTerm, interestRate);
-    const totalPayment = monthlyPayment * loanTerm;
+    // Calculate the monthly payment using the loan formula
+    const interestRate = selectedLoan.interestRate / 100; // Convert to decimal
+    const monthlyRate = interestRate / 12; // Monthly interest rate
+    const numberOfPayments = timePeriod; // Loan time period in months
 
-    // Calculate the end date
-    const endDate = format(addMonths(new Date(startDate), loanTerm), 'yyyy-MM-dd');
+    const monthlyPayment =
+      (principalAmount * monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) /
+      (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
 
-    // Insert loan application into the Loan table
-    const insertQuery = `
-      INSERT INTO Loan (
-        CustomerID, 
-        LoanType, 
-        PrincipleAmount, 
-        InterestRate, 
-        StartDate, 
-        EndDate, 
-        MonthlyPayment, 
-        Collateral
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `;
+    // Insert the loan application into the database
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + timePeriod);
 
-    const values = [
-      customerID,
-      selectedLoanType,
-      loanAmount,
-      interestRate,
-      startDate,
-      endDate,
-      monthlyPayment,
-      loanPurpose,
-    ];
+    const [result] = await connection.execute<any>(
+      `INSERT INTO Loan (CustomerID, LoanType, PrincipalAmount, InterestRate, MonthlyPayment, StartDate, EndDate, Collateral)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        customerID,
+        loanType,
+        principalAmount,
+        selectedLoan.interestRate,
+        monthlyPayment.toFixed(2), // Round to 2 decimal places
+        startDate,
+        endDate,
+        collateral,
+      ]
+    );
 
-    // Execute the insert query
-    const [insertResult] = await pool.query(insertQuery, values);
-    const insertId = (insertResult as any).insertId;
+    connection.release();
 
-    // Send the success response
-    res.status(200).json({
-      message: 'Loan application submitted successfully!',
-      loanID: insertId,
-      customerID: customerID,
-      monthlyPayment: monthlyPayment.toFixed(2),
-      totalPayment: totalPayment.toFixed(2),
-      startDate: startDate,
-      endDate: endDate,
-    });
+    return NextResponse.json(
+      {
+        message: 'Loan application successful',
+        loanID: result.insertId,
+      },
+      { status: 201 }
+    );
 
-  } catch (err) {
-    console.error('Error:', err);
-    res.status(500).json({ 
-      message: 'Error processing the loan application.',
-      error: err instanceof Error ? err.message : 'Unknown error'
-    });
+  } catch (error) {
+    console.error('Error in POST request:', error);  // Log the error details
+    return NextResponse.json(
+      { message: 'Error processing the request', error: (error as Error).message },
+      { status: 500 }
+    );
   }
-});
-
-// Function to calculate the monthly payment
-function calculateMonthlyPayment(principal: number, months: number, interestRate: number): number {
-  const monthlyRate = (interestRate / 100) / 12;
-  const numberOfPayments = months;
-
-  const monthlyPayment =
-    (principal * monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) /
-    (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
-
-  return isNaN(monthlyPayment) ? 0 : monthlyPayment;
 }
-
-// Start the server
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
-});

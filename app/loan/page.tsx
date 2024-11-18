@@ -2,19 +2,23 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CircleDollarSign, Home, CreditCard, History, ArrowLeftRight, Calculator, FileText, BankIcon, ChevronRight, Info, Check } from 'lucide-react';
+import { CircleDollarSign, Home, CreditCard, History, ArrowLeftRight, Calculator, FileText, ChevronRight, Info, Check } from 'lucide-react';
 
 const LoanApplicationPage = () => {
   const [loanAmount, setLoanAmount] = useState('25000');
   const [loanTerm, setLoanTerm] = useState('36');
   const [selectedLoanType, setSelectedLoanType] = useState('personal');
-  
+  const [accountNumber, setAccountNumber] = useState('');
+  const [collateral, setCollateral] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+
   // Define interest rates for different loan types
   const interestRates = {
     personal: 8.5,
-    student: 5.5
+    student: 5.5,
   };
-  
+
   // Calculate monthly payment
   const calculateMonthlyPayment = () => {
     const principal = parseFloat(loanAmount);
@@ -30,7 +34,44 @@ const LoanApplicationPage = () => {
   const monthlyPayment = calculateMonthlyPayment();
   const totalPayment = monthlyPayment * parseInt(loanTerm);
 
-  // Handler for loan type selection
+  const handleSubmit = async (e) => {
+    e.preventDefault(); // Prevent page reload on form submit
+    setLoading(true);
+
+    // Validation for empty fields
+    if (!accountNumber || !loanAmount || !loanTerm || !selectedLoanType) {
+      setMessage('All fields are required.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/dash/acad/loan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accountNumber,
+          loanType: selectedLoanType === 'personal' ? 'Personal Loan' : 'Student Loan',
+          principalAmount: loanAmount,
+          collateral,
+          timePeriod: loanTerm,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage('Loan application successful!');
+      } else {
+        setMessage(data.message || 'Error occurred during application.');
+      }
+    } catch (error) {
+      setMessage('An error occurred. Please try again later.');
+    }
+
+    setLoading(false);
+  };
+
   const handleLoanTypeSelect = (type) => {
     setSelectedLoanType(type);
   };
@@ -93,6 +134,21 @@ const LoanApplicationPage = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
+                    {/* Loan Type Selector */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Loan Type
+                      </label>
+                      <select
+                        value={selectedLoanType}
+                        onChange={(e) => setSelectedLoanType(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="personal">Personal Loan</option>
+                        <option value="student">Student Loan</option>
+                      </select>
+                    </div>
+
                     {/* Loan Amount Slider */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -147,9 +203,9 @@ const LoanApplicationPage = () => {
                         <p className="text-sm text-gray-600 mb-1">Interest Rate</p>
                         <p className="text-xl font-bold text-green-600">{interestRates[selectedLoanType]}%</p>
                       </div>
-                      <div className="text-center p-4 bg-purple-50 rounded-lg">
+                      <div className="text-center p-4 bg-yellow-50 rounded-lg">
                         <p className="text-sm text-gray-600 mb-1">Total Payment</p>
-                        <p className="text-xl font-bold text-purple-600">
+                        <p className="text-xl font-bold text-yellow-600">
                           ${totalPayment.toFixed(2)}
                         </p>
                       </div>
@@ -157,194 +213,58 @@ const LoanApplicationPage = () => {
                   </div>
                 </CardContent>
               </Card>
+            </div>
 
-              {/* Application Form */}
+            {/* Loan Application Form */}
+            <div>
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    Loan Application Form
+                    <Home className="w-5 h-5" />
+                    Apply for Loan
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 gap-6">
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    {message && (
+                      <div className="p-4 text-center bg-red-50 text-red-600 rounded-lg">
+                        {message}
+                      </div>
+                    )}
+
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        First Name
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Account Number</label>
                       <input
                         type="text"
-                        className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={accountNumber}
+                        onChange={(e) => setAccountNumber(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        required
                       />
                     </div>
+
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Last Name
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Collateral</label>
                       <input
                         type="text"
-                        className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={collateral}
+                        onChange={(e) => setCollateral(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Email Address
-                      </label>
-                      <input
-                        type="email"
-                        className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Phone Number
-                      </label>
-                      <input
-                        type="tel"
-                        className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Employment Status
-                      </label>
-                      <select className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option>Full-time employed</option>
-                        <option>Part-time employed</option>
-                        <option>Self-employed</option>
-                        <option>Student</option>
-                      </select>
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Annual Income
-                      </label>
-                      <input
-                        type="number"
-                        className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Loan Purpose
-                      </label>
-                      <select className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        {selectedLoanType === 'personal' ? (
-                          <>
-                            <option>Debt Consolidation</option>
-                            <option>Home Improvement</option>
-                            <option>Major Purchase</option>
-                            <option>Other</option>
-                          </>
-                        ) : (
-                          <>
-                            <option>Tuition</option>
-                            <option>Books and Supplies</option>
-                            <option>Living Expenses</option>
-                            <option>Other Educational Expenses</option>
-                          </>
-                        )}
-                      </select>
-                    </div>
-                  <div className="col-span-2">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Account Number
-        </label>
-        <input
-          type="text"
-          className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-      </div>
 
-                  <button className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg font-medium transition-colors mt-6">
-                    Submit Application
-                  </button>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Right Column */}
-            <div>
-              {/* Loan Types */}
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle>Available Loan Types</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div 
-                      className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                        selectedLoanType === 'personal' 
-                          ? 'bg-blue-50 border-blue-200' 
-                          : 'border-gray-100 hover:bg-gray-50'
-                      }`}
-                      onClick={() => handleLoanTypeSelect('personal')}
-                    >
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium">Personal Loan</h4>
-                        <ChevronRight className="w-5 h-5 text-gray-400" />
-                      </div>
-                      <p className="text-sm text-gray-600 mt-1">From {interestRates.personal}% APR</p>
+                    <div className="text-center">
+                      <button
+                        type="submit"
+                        className={`px-6 py-2 text-white rounded-md ${
+                          loading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'
+                        }`}
+                        disabled={loading}
+                      >
+                        {loading ? 'Applying...' : 'Submit Application'}
+                      </button>
                     </div>
-                    <div 
-                      className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                        selectedLoanType === 'student' 
-                          ? 'bg-blue-50 border-blue-200' 
-                          : 'border-gray-100 hover:bg-gray-50'
-                      }`}
-                      onClick={() => handleLoanTypeSelect('student')}
-                    >
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium">Student Loan</h4>
-                        <ChevronRight className="w-5 h-5 text-gray-400" />
-                      </div>
-                      <p className="text-sm text-gray-600 mt-1">From {interestRates.student}% APR</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Requirements */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Requirements</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-500 mt-0.5" />
-                      <div>
-                        <p className="font-medium">Age Requirement</p>
-                        <p className="text-sm text-gray-600">Must be 18 years or older</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-500 mt-0.5" />
-                      <div>
-                        <p className="font-medium">Income Proof</p>
-                        <p className="text-sm text-gray-600">
-                          {selectedLoanType === 'personal' 
-                            ? 'Recent pay stubs or tax returns'
-                            : 'Financial aid award letter or pay stubs'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-green-500 mt-0.5" />
-                      <div>
-                        <p className="font-medium">Credit Score</p>
-                        <p className="text-sm text-gray-600">Minimum score of 650 required</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-500 mt-0.5" />
-                      <div>
-                        <p className="font-medium">Bank Statements</p>
-                        <p className="text-sm text-gray-600">Last 3 months of statements</p>
-                      </div>
-                    </div>
-                  </div>
+                  </form>
                 </CardContent>
               </Card>
             </div>
