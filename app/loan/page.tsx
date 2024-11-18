@@ -1,186 +1,288 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Banknote } from "lucide-react";
-import axios from "axios";
+
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  CircleDollarSign,
+  Home,
+  CreditCard,
+  History,
+  ArrowLeftRight,
+  Calculator,
+  FileText,
+  ChevronRight,
+  Info,
+  Check,
+} from "lucide-react";
 import DashNavBar from "../dashboard/dashnavbar";
 
-interface Loan {
-  title: string;
-  interestRate: number;
-  loanLimit: number;
-  maxTimePeriod: number;
-  icon?: React.ComponentType<React.SVGProps<SVGSVGElement>>;
-}
+const LoanApplicationPage = () => {
+  const [loanAmount, setLoanAmount] = useState("25000");
+  const [loanTerm, setLoanTerm] = useState("36");
+  const [selectedLoanType, setSelectedLoanType] = useState("personal");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [collateral, setCollateral] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
-const Loans: React.FC = () => {
-  const [loanTypes, setLoanTypes] = useState<Loan[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showPopup, setShowPopup] = useState<boolean>(false);
-  const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
-  const [accountNumber, setAccountNumber] = useState<string>("");
-  const [loanAmount, setLoanAmount] = useState<string>("");
-  const [timePeriod, setTimePeriod] = useState<string>("");
-  const [collateral, setCollateral] = useState<string>("");
-  const router = useRouter();
-
-  useEffect(() => {
-    const fetchLoanTypes = async () => {
-      try {
-        const response = await axios.get("/api/dash/acad/loan");
-        setLoanTypes(response.data);
-        setLoading(false);
-      } catch (error) {
-        setError("Failed to load loan types");
-        setLoading(false);
-      }
-    };
-    fetchLoanTypes();
-  }, []);
-
-  const applyForLoan = (loan: Loan) => {
-    setSelectedLoan(loan);
-    setShowPopup(true);
+  // Define interest rates for different loan types
+  const interestRates = {
+    personal: 8.5,
+    student: 5.5,
   };
 
-  const handleSubmitApplication = async () => {
+  // Calculate monthly payment
+  const calculateMonthlyPayment = () => {
+    const principal = parseFloat(loanAmount);
+    const monthlyRate = interestRates[selectedLoanType] / 100 / 12;
+    const numberOfPayments = parseInt(loanTerm);
+
+    const monthlyPayment =
+      (principal * monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) /
+      (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
+
+    return isNaN(monthlyPayment) ? 0 : monthlyPayment;
+  };
+
+  const monthlyPayment = calculateMonthlyPayment();
+  const totalPayment = monthlyPayment * parseInt(loanTerm);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault(); // Prevent page reload on form submit
+    setLoading(true);
+
+    // Validation for empty fields
+    if (!accountNumber || !loanAmount || !loanTerm || !selectedLoanType) {
+      setMessage("All fields are required.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const response = await axios.post("/api/dash/acad/loan", {
-        accountNumber,
-        loanType: selectedLoan?.title,
-        principalAmount: parseFloat(loanAmount),
-        collateral,
-        timePeriod: parseInt(timePeriod),
+      const response = await fetch("/api/dash/acad/loan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountNumber,
+          loanType:
+            selectedLoanType === "personal" ? "Personal Loan" : "Student Loan",
+          principalAmount: loanAmount,
+          collateral,
+          timePeriod: loanTerm,
+        }),
       });
 
-      if (response.status === 201) {
-        alert("Loan application successful");
-        setShowPopup(false);
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage("Loan application successful!");
       } else {
-        alert(response.data.message);
+        setMessage(data.message || "Error occurred during application.");
       }
     } catch (error) {
-      alert("Error submitting application: " + error.message);
+      setMessage("An error occurred. Please try again later.");
     }
+
+    setLoading(false);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading loan types...
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        {error}
-      </div>
-    );
-  }
+  const handleLoanTypeSelect = (type) => {
+    setSelectedLoanType(type);
+  };
 
   return (
-    <div className="flex">
-      {/* Sidebar */}
+    <div className="min-h-screen bg-gray-50">
+      {/* Left Sidebar */}
       <DashNavBar activePage="loan" />
-      <div className="ml-64 flex-1 p-8 bg-gray-50 min-h-screen">
-        {/* Main Content */}
-        <main className="container mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900">Loan Solutions</h2>
-            <p className="text-gray-600 mt-4">
-              Discover our range of loan products with detailed information to
-              meet your financial needs.
+
+      {/* Main Content */}
+      <div className="ml-64 p-8">
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-2xl font-semibold">
+              {selectedLoanType === "personal" ? "Personal" : "Student"} Loan
+              Application
+            </h1>
+            <p className="text-gray-600">
+              Calculate and apply for a {selectedLoanType} loan that fits your
+              needs.
             </p>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {loanTypes.map((loan, index) => {
-              const LoanIcon = loan.icon || Banknote;
-              return (
-                <div
-                  key={index}
-                  className="bg-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
-                >
-                  <LoanIcon className="h-12 w-12 text-blue-600 mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">{loan.title}</h3>
-                  <p className="text-gray-600 mb-2">
-                    Interest Rate: {loan.interestRate}% p.a.
-                  </p>
-                  <p className="text-gray-600 mb-2">
-                    Loan Limit: ${loan.loanLimit.toLocaleString()}
-                  </p>
-                  <p className="text-gray-600">
-                    Max Time Period: {loan.maxTimePeriod} months
-                  </p>
-                  <button
-                    onClick={() => applyForLoan(loan)}
-                    className="mt-6 w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-300"
-                  >
-                    Apply Now
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </main>
-      </div>
 
-      {/* Popup */}
-      {showPopup && selectedLoan && (
-        <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-            <h3 className="text-2xl font-semibold mb-4">
-              Apply for {selectedLoan.title}
-            </h3>
-            <label className="block mb-2">
-              Account Number:
-              <input
-                type="text"
-                className="w-full border-gray-300 rounded-lg p-2 mt-1"
-                value={accountNumber}
-                onChange={(e) => setAccountNumber(e.target.value)}
-              />
-            </label>
-            <label className="block mb-2">
-              Loan Amount:
-              <input
-                type="text"
-                className="w-full border-gray-300 rounded-lg p-2 mt-1"
-                value={loanAmount}
-                onChange={(e) => setLoanAmount(e.target.value)}
-              />
-            </label>
-            <label className="block mb-2">
-              Time Period (in months):
-              <input
-                type="text"
-                className="w-full border-gray-300 rounded-lg p-2 mt-1"
-                value={timePeriod}
-                onChange={(e) => setTimePeriod(e.target.value)}
-              />
-            </label>
-            <label className="block mb-4">
-              Collateral (Purpose):
-              <input
-                type="text"
-                className="w-full border-gray-300 rounded-lg p-2 mt-1"
-                value={collateral}
-                onChange={(e) => setCollateral(e.target.value)}
-              />
-            </label>
-            <button
-              onClick={handleSubmitApplication}
-              className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-300 w-full"
-            >
-              Submit Application
-            </button>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Loan Calculator */}
+            <div className="lg:col-span-2">
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calculator className="w-5 h-5" />
+                    Loan Calculator
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {/* Loan Type Selector */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Loan Type
+                      </label>
+                      <select
+                        value={selectedLoanType}
+                        onChange={(e) => setSelectedLoanType(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="personal">Personal Loan</option>
+                        <option value="student">Student Loan</option>
+                      </select>
+                    </div>
+
+                    {/* Loan Amount Slider */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Loan Amount
+                      </label>
+                      <input
+                        type="range"
+                        min="1000"
+                        max="1000000"
+                        step="1000"
+                        value={loanAmount}
+                        onChange={(e) => setLoanAmount(e.target.value)}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <div className="flex justify-between mt-2">
+                        <span className="text-sm text-gray-600">$1,000</span>
+                        <span className="text-lg font-semibold text-blue-600">
+                          ${parseInt(loanAmount).toLocaleString()}
+                        </span>
+                        <span className="text-sm text-gray-600">
+                          $1,000,000
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Loan Term Slider */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Loan Term (Months)
+                      </label>
+                      <input
+                        type="range"
+                        min="12"
+                        max="360"
+                        step="6"
+                        value={loanTerm}
+                        onChange={(e) => setLoanTerm(e.target.value)}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <div className="flex justify-between mt-2">
+                        <span className="text-sm text-gray-600">12 months</span>
+                        <span className="text-lg font-semibold text-blue-600">
+                          {loanTerm} months
+                        </span>
+                        <span className="text-sm text-gray-600">
+                          360 months
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Results */}
+                    <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <p className="text-sm text-gray-600 mb-1">
+                          Monthly Payment
+                        </p>
+                        <p className="text-xl font-bold text-blue-600">
+                          ${monthlyPayment.toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="text-center p-4 bg-green-50 rounded-lg">
+                        <p className="text-sm text-gray-600 mb-1">
+                          Interest Rate
+                        </p>
+                        <p className="text-xl font-bold text-green-600">
+                          {interestRates[selectedLoanType]}%
+                        </p>
+                      </div>
+                      <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                        <p className="text-sm text-gray-600 mb-1">
+                          Total Payment
+                        </p>
+                        <p className="text-xl font-bold text-yellow-600">
+                          ${totalPayment.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Loan Application Form */}
+            <div>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Home className="w-5 h-5" />
+                    Apply for Loan
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    {message && (
+                      <div className="p-4 text-center bg-red-50 text-red-600 rounded-lg">
+                        {message}
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Account Number
+                      </label>
+                      <input
+                        type="text"
+                        value={accountNumber}
+                        onChange={(e) => setAccountNumber(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Collateral
+                      </label>
+                      <input
+                        type="text"
+                        value={collateral}
+                        onChange={(e) => setCollateral(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+
+                    <div className="text-center">
+                      <button
+                        type="submit"
+                        className={`px-6 py-2 text-white rounded-md ${
+                          loading
+                            ? "bg-gray-400"
+                            : "bg-blue-600 hover:bg-blue-700"
+                        }`}
+                        disabled={loading}
+                      >
+                        {loading ? "Applying..." : "Submit Application"}
+                      </button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
-export default Loans;
+export default LoanApplicationPage;

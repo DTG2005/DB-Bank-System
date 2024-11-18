@@ -1,60 +1,57 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ClipboardCheck,CreditCard, Search, DollarSign, CheckCircle, PlusCircle,  XCircle } from 'lucide-react';
+import { ClipboardCheck, CreditCard, Search, DollarSign, CheckCircle, PlusCircle } from 'lucide-react';
+import axios from 'axios'; // Import axios for API calls
+import { Dialog, DialogOverlay, DialogContent } from "@/components/ui/dialog";
 
-const ScholarshipPage = () => {
-  const [searchTerm, setSearchTerm] = useState("");
+type Scholarship = {
+  ScholarshipName: string;
+  Amount: number;
+  EligibilityCriteria: string;
+  ApplicationDeadline: string;
+  applied: boolean;
+};
 
-  const scholarships = [
-    {
-      title: "Merit-Based Scholarship",
-      description: "Awarded to students with outstanding academic achievements in the current year.",
-      eligibility: "CGPA above 8.5",
-      amount: 2000,
-      deadline: "31st Dec 2024",
-      applied: false
-    },
-    {
-      title: "Sports Scholarship",
-      description: "For students excelling in sports at the national or international level.",
-      eligibility: "Active participation in university-level sports",
-      amount: 1500,
-      deadline: "15th Nov 2024",
-      applied: false
-    },
-    {
-      title: "Need-Based Scholarship",
-      description: "For students from financially challenged backgrounds.",
-      eligibility: "Family income below 5 LPA",
-      amount: 1000,
-      deadline: "30th Nov 2024",
-      applied: false
-    },
-    {
-      title: "Research Scholarship",
-      description: "For students pursuing research in science and technology fields.",
-      eligibility: "Currently enrolled in a research program",
-      amount: 3000,
-      deadline: "10th Dec 2024",
-      applied: false
-    }
-  ];
+const ScholarshipPage: React.FC = () => {
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [scholarships, setScholarships] = useState<Scholarship[]>([]);
+  const [showDialog, setShowDialog] = useState<boolean>(false);
 
-  const handleSearch = (e) => {
+  // Fetch scholarships from the database
+  useEffect(() => {
+    const fetchScholarships = async () => {
+      try {
+        const response = await axios.get<Scholarship[]>('/api/auth/scholarship'); // Adjust the API endpoint as needed
+        setScholarships(response.data);
+      } catch (error) {
+        console.error("Error fetching scholarships: ", error);
+      }
+    };
+
+    fetchScholarships();
+  }, []);
+
+  const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   };
 
+  const handleApplyClick = () => {
+    setShowDialog(true);
+  };
+
+  const closeDialog = () => {
+    setShowDialog(false);
+  };
+
   const filteredScholarships = scholarships.filter(scholarship =>
-    scholarship.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    scholarship.description.toLowerCase().includes(searchTerm.toLowerCase())
+    scholarship.ScholarshipName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Left Sidebar */}
       <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 p-4">
-        
         <div className="mb-8">
           <h1 className="text-xl font-bold text-blue-600 flex items-center gap-2">
             <div className="w-6 h-6 bg-blue-600 rotate-45" />
@@ -66,10 +63,6 @@ const ScholarshipPage = () => {
           <button className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg">
             <Search className="w-5 h-5" />
             Search Scholarships
-          </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg">
-            <ClipboardCheck className="w-5 h-5" />
-            My Applications
           </button>
         </nav>
       </div>
@@ -105,16 +98,16 @@ const ScholarshipPage = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     <DollarSign className="w-5 h-5 mr-2 text-blue-600" />
-                    {scholarship.title}
+                    {scholarship.ScholarshipName}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-600 mb-2">{scholarship.description}</p>
-                  <p className="text-sm text-gray-600 mb-2"><strong>Eligibility:</strong> {scholarship.eligibility}</p>
-                  <p className="text-sm text-gray-600 mb-2"><strong>Amount:</strong> ${scholarship.amount}</p>
-                  <p className="text-sm text-gray-600 mb-2"><strong>Deadline:</strong> {scholarship.deadline}</p>
+                  <p className="text-sm text-gray-600 mb-2"><strong>Amount:</strong> ${scholarship.Amount}</p>
+                  <p className="text-sm text-gray-600 mb-2"><strong>Eligibility:</strong> {scholarship.EligibilityCriteria}</p>
+                  <p className="text-sm text-gray-600 mb-2"><strong>Deadline:</strong> {new Date(scholarship.ApplicationDeadline).toLocaleDateString()}</p>
 
                   <button
+                    onClick={handleApplyClick}
                     className={`w-full py-3 rounded-lg text-white ${scholarship.applied ? 'bg-green-500' : 'bg-blue-500'} hover:bg-blue-600`}
                     disabled={scholarship.applied}
                   >
@@ -137,7 +130,16 @@ const ScholarshipPage = () => {
         </div>
       </div>
 
-     
+      {/* Dialog Box */}
+      {showDialog && (
+        <DialogOverlay onClick={closeDialog} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <DialogContent onClick={(e) => e.stopPropagation()} className="bg-white p-6 rounded-lg shadow-lg">
+            <h2 className="text-xl font-semibold mb-4">Visit Our Branch</h2>
+            <p className="text-gray-600 mb-4">Please visit our nearest branch for more information on how to complete your scholarship application.</p>
+            <button onClick={closeDialog} className="w-full py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Close</button>
+          </DialogContent>
+        </DialogOverlay>
+      )}
     </div>
   );
 };

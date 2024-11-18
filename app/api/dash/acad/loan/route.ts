@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import type { OkPacket, RowDataPacket } from 'mysql2';
-import { db } from '@/lib/loan-utils';
+import { db } from '@/lib/loan-utils';  // Ensure you have a database utility file
 
 interface LoanType {
   title: string;
@@ -13,28 +12,36 @@ interface LoanType {
 export const loanTypes: LoanType[] = [
   {
     title: 'Personal Loan',
-    interestRate: 8.99,
+    interestRate: 8.5,
     loanLimit: 1000000,
-    maxTimePeriod: 120, // in months (10 years)
+    maxTimePeriod: 360, // in months (30 years)
   },
   {
     title: 'Student Loan',
-    interestRate: 4.99,
-    loanLimit: 100000,
-    maxTimePeriod: 180, // in months (15 years)
+    interestRate: 5.5,
+    loanLimit: 1000000,
+    maxTimePeriod: 360, // in months (5 years)
   },
 ];
 
-export async function GET(request: NextRequest) {
-  return NextResponse.json(loanTypes);
-}
-
 export async function POST(request: NextRequest) {
   try {
+    // Ensure content-type is application/json
+    if (request.headers.get('content-type') !== 'application/json') {
+      return NextResponse.json(
+        { message: 'Invalid content type. Expected application/json.' },
+        { status: 400 }
+      );
+    }
+
+    // Parse the incoming request body
     const body = await request.json();
+    console.log('Received body:', body);  // Log the received body for debugging
+
     const { accountNumber, loanType, principalAmount, collateral, timePeriod } = body;
 
     if (!accountNumber || !loanType || !principalAmount || !collateral || !timePeriod) {
+      console.error('Missing fields:', body);  // Log missing fields
       return NextResponse.json(
         { message: 'All fields are required.' },
         { status: 400 }
@@ -43,8 +50,8 @@ export async function POST(request: NextRequest) {
 
     // Connect to the database and get CustomerID using AccountNumber
     const connection = await db.getConnection();
-    const [rows] = await connection.execute<RowDataPacket[]>(
-      `SELECT CustomerID FROM Account WHERE AccountNumber = ?`,
+    const [rows] = await connection.execute<any[]>(
+      'SELECT CustomerID FROM Account WHERE AccountID = ?',
       [accountNumber]
     );
 
@@ -59,7 +66,10 @@ export async function POST(request: NextRequest) {
     const customerID = rows[0].CustomerID;
 
     // Find the selected loan type
-    const selectedLoan = loanTypes.find((loan) => loan.title === loanType);
+    const selectedLoan = loanTypes.find(
+      (loan) => loan.title === loanType
+    );
+    
     if (!selectedLoan) {
       connection.release();
       return NextResponse.json(
@@ -73,6 +83,15 @@ export async function POST(request: NextRequest) {
       connection.release();
       return NextResponse.json(
         { message: `Loan amount exceeds the limit of $${selectedLoan.loanLimit.toLocaleString()}.` },
+        { status: 400 }
+      );
+    }
+
+    // Check if the time period is within the allowed limit for the loan type
+    if (timePeriod > selectedLoan.maxTimePeriod) {
+      connection.release();
+      return NextResponse.json(
+        { message: `Loan term exceeds the maximum allowed period of ${selectedLoan.maxTimePeriod} months.` },
         { status: 400 }
       );
     }
@@ -91,29 +110,35 @@ export async function POST(request: NextRequest) {
     const endDate = new Date();
     endDate.setMonth(endDate.getMonth() + timePeriod);
 
-    const [result] = await connection.execute<OkPacket>(
-      `INSERT INTO Loan (CustomerID, LoanType, PrincipalAmount, Collateral, StartDate, EndDate, MonthlyPayment) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [customerID, loanType, principalAmount, collateral, startDate, endDate, monthlyPayment]
+    const [result] = await connection.execute<any>(
+      `INSERT INTO Loan (CustomerID, LoanType, PrincipalAmount, InterestRate, MonthlyPayment, StartDate, EndDate, Collateral)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        customerID,
+        loanType,
+        principalAmount,
+        selectedLoan.interestRate,
+        monthlyPayment.toFixed(2), // Round to 2 decimal places
+        startDate,
+        endDate,
+        collateral,
+      ]
     );
 
     connection.release();
 
-    if (result.affectedRows > 0) {
-      return NextResponse.json(
-        { message: 'Loan application submitted successfully.' },
-        { status: 201 }
-      );
-    } else {
-      return NextResponse.json(
-        { message: 'Failed to submit loan application.' },
-        { status: 500 }
-      );
-    }
-
-  } catch (error: any) {
     return NextResponse.json(
-      { message: 'Error processing loan application: ' + error.message },
+      {
+        message: 'Loan application successful',
+        loanID: result.insertId,
+      },
+      { status: 201 }
+    );
+
+  } catch (error) {
+    console.error('Error in POST request:', error);  // Log the error details
+    return NextResponse.json(
+      { message: 'Error processing the request', error: (error as Error).message },
       { status: 500 }
     );
   }
