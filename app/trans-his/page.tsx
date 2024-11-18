@@ -21,47 +21,53 @@ const TransactionHistoryPage = () => {
     totalExpenses: 0,
     netFlow: 0,
   });
+  const [accountNumber, setAccountNumber] = useState(""); // Controlled input state
+  const [isLoading, setIsLoading] = useState(false); // Loading state
+  const [error, setError] = useState<string | null>(null); // Error handling
 
-  const accountNumber = "987654"; // Replace with dynamic accountId if needed
+  const fetchTransactions = async () => {
+    if (!accountNumber.trim()) {
+      setError("Please enter a valid account number.");
+      return;
+    }
 
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      try {
-        // Fetch transactions based on the accountNumber
-        const response = await fetch(
-          `/api/auth/transaction?accountNumber=${accountNumber}`
-        );
-        const data = await response.json();
-        console.log(data);
-        if (response.ok) {
-          const { transactions }: { transactions: Transaction[] } = data;
+    setIsLoading(true);
+    setError(null);
 
-          // Calculate summary data
-          const totalIncome = transactions
-            .filter((txn) => txn.transactionType === "incoming")
-            .reduce((sum, txn) => sum + txn.Amount, 0);
+    try {
+      const response = await fetch(
+        `/api/auth/transaction?accountNumber=${accountNumber}`
+      );
+      const data = await response.json();
 
-          const totalExpenses = transactions
-            .filter((txn) => txn.transactionType === "outgoing")
-            .reduce((sum, txn) => sum + txn.Amount, 0);
+      if (response.ok) {
+        const { transactions }: { transactions: Transaction[] } = data;
 
-          setSummary({
-            totalIncome,
-            totalExpenses,
-            netFlow: totalIncome - totalExpenses,
-          });
+        // Calculate summary data
+        const totalIncome = transactions
+          .filter((txn) => txn.transactionType === "incoming")
+          .reduce((sum, txn) => sum + txn.Amount, 0);
 
-          setTransactions(transactions);
-        } else {
-          console.error(data.error || "Failed to fetch transactions.");
-        }
-      } catch (error) {
-        console.error("Error fetching transactions:", error);
+        const totalExpenses = transactions
+          .filter((txn) => txn.transactionType === "outgoing")
+          .reduce((sum, txn) => sum + txn.Amount, 0);
+
+        setSummary({
+          totalIncome,
+          totalExpenses,
+          netFlow: totalIncome - totalExpenses,
+        });
+
+        setTransactions(transactions);
+      } else {
+        setError(data.error || "Failed to fetch transactions.");
       }
-    };
-
-    fetchTransactions();
-  }, [accountNumber]); // Rerun effect when the accountNumber changes
+    } catch (error) {
+      setError("Error fetching transactions. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -73,8 +79,27 @@ const TransactionHistoryPage = () => {
         <div className="max-w-6xl mx-auto">
           <h1 className="text-2xl font-semibold">Transaction History</h1>
           <p className="text-gray-600 mb-8">
-            View and manage your transactions.
+            View and manage your transactions by entering your account number.
           </p>
+
+          {/* Account Number Input */}
+          <div className="mb-6">
+            <input
+              type="text"
+              placeholder="Enter Account Number"
+              value={accountNumber}
+              onChange={(e) => setAccountNumber(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-lg mb-2"
+            />
+            <button
+              onClick={fetchTransactions}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+              disabled={isLoading}
+            >
+              {isLoading ? "Fetching..." : "Fetch Transactions"}
+            </button>
+            {error && <p className="text-red-600 mt-2">{error}</p>}
+          </div>
 
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -134,42 +159,46 @@ const TransactionHistoryPage = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {transactions.map((transaction) => (
-                  <div
-                    key={transaction.TransactionID}
-                    className="p-4 border border-gray-100 rounded-lg hover:bg-gray-50"
-                  >
-                    <div className="flex justify-between">
-                      <div>
-                        <h4 className="font-medium">
-                          {transaction.Description}
-                        </h4>
-                        <p className="text-gray-600 text-sm">
-                          {new Date(
-                            transaction.TransactionDate
-                          ).toLocaleDateString()}
-                        </p>
-                        <p className="text-gray-600 text-sm">
-                          {transaction.TransactionTime}
-                        </p>
-                      </div>
-                      <div>
-                        <p
-                          className={`font-medium ${
-                            transaction.transactionType === "incoming"
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {transaction.transactionType === "incoming"
-                            ? "+"
-                            : "-"}
-                          ${transaction.Amount.toFixed(2)}
-                        </p>
+                {transactions.length === 0 ? (
+                  <p className="text-gray-600">No transactions found.</p>
+                ) : (
+                  transactions.map((transaction) => (
+                    <div
+                      key={transaction.TransactionID}
+                      className="p-4 border border-gray-100 rounded-lg hover:bg-gray-50"
+                    >
+                      <div className="flex justify-between">
+                        <div>
+                          <h4 className="font-medium">
+                            {transaction.Description}
+                          </h4>
+                          <p className="text-gray-600 text-sm">
+                            {new Date(
+                              transaction.TransactionDate
+                            ).toLocaleDateString()}
+                          </p>
+                          <p className="text-gray-600 text-sm">
+                            {transaction.TransactionTime}
+                          </p>
+                        </div>
+                        <div>
+                          <p
+                            className={`font-medium ${
+                              transaction.transactionType === "incoming"
+                                ? "text-green-600"
+                                : "text-red-600"
+                            }`}
+                          >
+                            {transaction.transactionType === "incoming"
+                              ? "+"
+                              : "-"}
+                            ${transaction.Amount.toFixed(2)}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
