@@ -22,48 +22,50 @@ const TransferFundsPage = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
-  const userInfo = {
-    accounts: [
-      {
-        id: 1,
-        bankName: "Chase Bank",
-        accountNumber: "****4523",
-        balance: 1250.35,
-        icon: "💳",
-      },
-      {
-        id: 2,
-        bankName: "Bank of America",
-        accountNumber: "****7890",
-        balance: 3420.5,
-        icon: "🏦",
-      },
-    ],
-    recentTransfers: [
-      {
-        id: 1,
-        recipient: "John Doe",
-        bank: "Chase Bank",
-        amount: 250.0,
-        date: "2024-03-15",
-        status: "Completed",
-      },
-      {
-        id: 2,
-        recipient: "Jane Smith",
-        bank: "Wells Fargo",
-        amount: 1000.0,
-        date: "2024-03-14",
-        status: "Pending",
-      },
-    ],
-  };
+  // const userInfo = {
+  //   accounts: [
+  //     {
+  //       id: 1,
+  //       bankName: "Chase Bank",
+  //       accountNumber: "****4523",
+  //       balance: 1250.35,
+  //       icon: "💳",
+  //     },
+  //     {
+  //       id: 2,
+  //       bankName: "Bank of America",
+  //       accountNumber: "****7890",
+  //       balance: 3420.5,
+  //       icon: "🏦",
+  //     },
+  //   ],
+  //   recentTransfers: [
+  //     {
+  //       id: 1,
+  //       recipient: "John Doe",
+  //       bank: "Chase Bank",
+  //       amount: 250.0,
+  //       date: "2024-03-15",
+  //       status: "Completed",
+  //     },
+  //     {
+  //       id: 2,
+  //       recipient: "Jane Smith",
+  //       bank: "Wells Fargo",
+  //       amount: 1000.0,
+  //       date: "2024-03-14",
+  //       status: "Pending",
+  //     },
+  //   ],
+  // };
 
   // Handle transfer
   const handleTransfer = async (e: React.FormEvent) => {
     setLoading(true);
     setErrorMessage("");
+    setSuccessMessage("");
 
     // Request data for transfer
     console.log("Starting transfer...");
@@ -94,9 +96,9 @@ const TransferFundsPage = () => {
         body: JSON.stringify({
           transactionType: "TRANSFER", // Transaction type is 'TRANSFER'
           details: {
-            senderAccountNumber: senderAccount, // Send sender account ID
+            senderAccountId: senderAccount, // Send sender account ID
             senderName: name, // Send sender's full name
-            recipientAccountNumber: recipientAccount, // Send recipient account ID
+            recipientAccountId: recipientAccount, // Send recipient account ID
             amount: Number(amount),
             description: description, // Send amount to transfer
           },
@@ -111,6 +113,12 @@ const TransferFundsPage = () => {
       }
       if (response.ok) {
         // handle success (reset fields or display success message)
+        setSuccessMessage("Transfer Successful!");
+        setName("");
+        setSenderAccount("");
+        setRecipientAccount("");
+        setAmount("");
+        setDescription("");
         alert("Transfer Successful!");
       } else {
         setErrorMessage(
@@ -249,6 +257,11 @@ const TransferFundsPage = () => {
                     </button>
 
                     {/* Error Message */}
+                    {successMessage && (
+  <div className="text-green-600 text-sm mt-2">
+    {successMessage}
+  </div>
+)}
                     {errorMessage && (
                       <p className="text-red-600 text-sm mt-2">
                         {errorMessage}
@@ -263,7 +276,7 @@ const TransferFundsPage = () => {
             </div>
 
             {/* Recent Transfers */}
-            <div>
+            {/* <div>
               <Card>
                 <CardHeader>
                   <CardTitle>Recent Transfers</CardTitle>
@@ -302,7 +315,7 @@ const TransferFundsPage = () => {
                   </div>
                 </CardContent>
               </Card>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

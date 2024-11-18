@@ -5,16 +5,16 @@ import { ResultSetHeader,RowDataPacket, FieldPacket } from 'mysql2';
 // Enum to define transaction types
 enum TransactionType {
   TRANSFER = 'TRANSFER',
-  // WITHDRAW = 'WITHDRAW',
-  // DEPOSIT = 'DEPOSIT',
+  WITHDRAW = 'WITHDRAW',
+  DEPOSIT = 'DEPOSIT',
   BILL_PAYMENT = 'BILL_PAYMENT'
 }
 
 // Interface for transaction details
 interface TransferDetails {
-  senderAccountNumber: string;
+  senderAccountId: string;
   senderName: string;
-  recipientAccountNumber: string;
+  recipientAccountId: string;
   amount: number;
   description : string;
 }
@@ -47,15 +47,15 @@ async function handleTransaction(transactionType: TransactionType, details: Tran
 
     switch (transactionType) {
       case TransactionType.TRANSFER: {
-        const { senderAccountNumber, senderName, recipientAccountNumber, amount,description } = details as TransferDetails;
+        const { senderAccountId, senderName, recipientAccountId, amount, description } = details as TransferDetails;
 
-        // 1. Retrieve sender account details using AccountNumber
+        // 1. Retrieve sender account details using AccountID
         const [senderResult]: [RowDataPacket[], FieldPacket[]] = await connection.query(
-          `SELECT a.AccountID, a.BranchID, a.Balance, c.Firstname, c.Middlename, c.Lastname 
+          `SELECT a.BranchID, a.Balance, c.Firstname, c.Middlename, c.Lastname 
            FROM Account a 
            JOIN Customer c ON a.CustomerID = c.CustomerID 
-           WHERE a.AccountNumber = ?`,
-          [senderAccountNumber]
+           WHERE a.AccountID = ?`,
+          [senderAccountId]
         );
         
         if (!senderResult.length) {
@@ -63,7 +63,6 @@ async function handleTransaction(transactionType: TransactionType, details: Tran
         }
         
         const sender = senderResult[0];
-        const senderAccountId = sender.AccountID; // Retrieved AccountID
         const fullSenderName = `${sender.Firstname} ${sender.Middlename} ${sender.Lastname}`.trim();
         
         if (fullSenderName !== senderName.trim()) {
@@ -72,20 +71,20 @@ async function handleTransaction(transactionType: TransactionType, details: Tran
         
         const senderBranchId = sender.BranchID;
         
-        // 2. Validate recipient account exists using AccountNumber
+        // 2. Validate recipient account exists using AccountID
         const [recipientResult]: [RowDataPacket[], FieldPacket[]] = await connection.query(
-          `SELECT a.AccountID, a.BranchID
-           FROM Account a 
-           WHERE a.AccountNumber = ?`,
-          [recipientAccountNumber]
+          `SELECT BranchID 
+           FROM Account 
+           WHERE AccountID = ?`,
+          [recipientAccountId]
         );
         
         if (!recipientResult.length) {
           throw new Error('Recipient account not found');
         }
         
-        const recipientAccountId = recipientResult[0].AccountID; // Retrieved AccountID for recipient
-        const recipientBranchId = recipientResult[0].BranchID; 
+        const recipientBranchId = recipientResult[0].BranchID;
+        
         // 3. Check sender balance
         if (sender.Balance < amount) {
           throw new Error('Insufficient funds');
@@ -94,7 +93,7 @@ async function handleTransaction(transactionType: TransactionType, details: Tran
         // 4. Perform transaction (debit sender, credit recipient)
         const transactionDate = new Date();
         const transactionDateFormatted = transactionDate.toISOString().split('T')[0]; // YYYY-MM-DD format
-        const transactionTimeFormatted = transactionDate.toISOString().split('T')[1].split('.')[0]; // HH:MM:SS format
+        const transactionTimeFormatted = transactionDate.toISOString().split('T')[1].split('.')[0]; // HH:MM:SS format;
         
         // Debit sender account
         await connection.query('UPDATE Account SET Balance = Balance - ? WHERE AccountID = ?', [amount, senderAccountId]);
@@ -108,32 +107,34 @@ async function handleTransaction(transactionType: TransactionType, details: Tran
            VALUES (?, ?, 'TRANSFER', ?, true, ?, ?, ?, ?, ?)`,
           [senderAccountId, senderBranchId, amount, transactionDateFormatted, transactionTimeFormatted, description, senderAccountId, recipientAccountId]
         );
-
-        const transactionId = (transactionResult as ResultSetHeader).insertId;  // Get the TransactionID of the inserted record
-
+        
+        const transactionId = (transactionResult as ResultSetHeader).insertId; // Get the TransactionID of the inserted record
+        
         // Insert into the Account_Transaction table for sender account
         await connection.query(
-            `INSERT INTO Account_Transaction (AccountID, TransactionID) VALUES (?, ?)`,
-            [senderAccountId, transactionId]
+          `INSERT INTO Account_Transaction (AccountID, TransactionID) VALUES (?, ?)`,
+          [senderAccountId, transactionId]
         );
-    
+        
         // Insert into the Account_Transaction table for recipient account
         await connection.query(
-            `INSERT INTO Account_Transaction (AccountID, TransactionID) VALUES (?, ?)`,
-            [recipientAccountId, transactionId]
+          `INSERT INTO Account_Transaction (AccountID, TransactionID) VALUES (?, ?)`,
+          [recipientAccountId, transactionId]
         );
-           // 8. Insert into Branch_Transaction table to link the transaction with both the sender's and recipient's branches
-    await connection.query(
-      `INSERT INTO Branch_Transaction (BranchID, TransactionID) VALUES (?, ?)`,
-      [senderBranchId, transactionId]
-    );
-
-    // Insert recipient's branch in the Branch_Transaction table
-    await connection.query(
-      `INSERT INTO Branch_Transaction (BranchID, TransactionID) VALUES (?, ?)`,
-      [recipientBranchId, transactionId]
-    );
-break;        
+        
+        // 8. Insert into Branch_Transaction table to link the transaction with both the sender's and recipient's branches
+        await connection.query(
+          `INSERT INTO Branch_Transaction (BranchID, TransactionID) VALUES (?, ?)`,
+          [senderBranchId, transactionId]
+        );
+        
+        // Insert recipient's branch in the Branch_Transaction table
+        await connection.query(
+          `INSERT INTO Branch_Transaction (BranchID, TransactionID) VALUES (?, ?)`,
+          [recipientBranchId, transactionId]
+        );
+        
+        break;
       }
 
       // case TransactionType.WITHDRAW: {
