@@ -13,6 +13,7 @@ import {
   Building,
   CreditCard,
 } from "lucide-react";
+import Link from "next/link";
 
 const AccountCreation = () => {
   const [step, setStep] = useState(1);
@@ -60,7 +61,7 @@ const AccountCreation = () => {
       .then((data) => {
         if (!data.error) {
           alert("Account created successfully!");
-          window.location.href = "/login";
+          alert("Your Account Number is: " + data.message[1]);
         } else {
           alert(data.error);
         }
@@ -133,6 +134,13 @@ const AccountCreation = () => {
                   className="w-full mt-1 p-3 bg-white/5 border border-blue-200/20 rounded-lg focus:ring-2 focus:ring-blue-400 text-white"
                 />
               </div>
+            </div>
+            <div className="flex justify-end">
+              <Link href="/login">
+                <p className="animated-gradient-hover text-blue-100 hover:text-transparent hover:bg-clip-text">
+                  Already have an account? Login
+                </p>
+              </Link>
             </div>
           </div>
         );

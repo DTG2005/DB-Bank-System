@@ -1,5 +1,11 @@
-import React from 'react';
-import { Card, CreditCard , CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React from "react";
+import {
+  Card,
+  CreditCard,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   CircleDollarSign,
   Home,
@@ -9,8 +15,9 @@ import {
   TrendingUp,
   ArrowUpRight,
   ArrowDownRight,
-  AlertCircle
-} from 'lucide-react';
+  AlertCircle,
+} from "lucide-react";
+import DashNavBar from "./dashnavbar";
 
 const DashboardPage = () => {
   const userInfo = {
@@ -19,58 +26,29 @@ const DashboardPage = () => {
     email: "aayu@gmail.com",
     currentBalance: 1250.35,
     bankAccounts: 1,
-    cardBalance: 123.50,
+    cardBalance: 123.5,
     cardNumber: "•••• •••• •••• 1234",
-    monthlyIncome: 4580.20,
-    monthlyExpenses: 2345.80,
+    monthlyIncome: 4580.2,
+    monthlyExpenses: 2345.8,
   };
 
   const notices = [
     {
       title: "Safeguard Yourself Against Fraud",
-      description: "Never ever share your login credentials like password, OTP, ATM PIN, etc with anyone.",
+      description:
+        "Never ever share your login credentials like password, OTP, ATM PIN, etc with anyone.",
     },
     {
       title: "Scholarship Application Open",
-      description: "Merit-based scholarships for 2024-25 are now open for application.",
+      description:
+        "Merit-based scholarships for 2024-25 are now open for application.",
     },
   ];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Left Sidebar */}
-      <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 p-4">
-        <div className="mb-8">
-          <h1 className="text-xl font-bold text-blue-600 flex items-center gap-2">
-            <div className="w-6 h-6 bg-blue-600 rotate-45" />
-            EverTrust
-          </h1>
-        </div>
-
-        <nav className="space-y-2">
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-white bg-blue-500 rounded-lg">
-            <Home className="w-5 h-5" />
-            Home
-          </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg">
-            <ArrowLeftRight className="w-5 h-5" />
-            Transfer Funds
-          </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg">
-            <History className="w-5 h-5" />
-            Transaction History
-          </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg">
-          <History className="w-5 h-5" />
-          Credit Cards
-          </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg">
-            <CircleDollarSign className="w-5 h-5" />
-            Apply for Loans
-          </button>
-        </nav>
-      </div>
-
+      {/* Sidebar */}
+      <DashNavBar activePage="dashboard" />
       {/* Main Content */}
       <div className="ml-64 p-8">
         <div className="max-w-6xl mx-auto">
@@ -90,8 +68,12 @@ const DashboardPage = () => {
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-6">
                   <div>
-                    <h2 className="text-lg font-semibold mb-1">Total Balance</h2>
-                    <p className="text-3xl font-bold text-blue-600">${userInfo.currentBalance.toLocaleString()}</p>
+                    <h2 className="text-lg font-semibold mb-1">
+                      Total Balance
+                    </h2>
+                    <p className="text-3xl font-bold text-blue-600">
+                      ${userInfo.currentBalance.toLocaleString()}
+                    </p>
                   </div>
                   <div className="bg-blue-50 p-2 rounded-full">
                     <TrendingUp className="w-6 h-6 text-blue-500" />
@@ -101,7 +83,9 @@ const DashboardPage = () => {
                 <div className="grid grid-cols-2 gap-4 mt-6">
                   <div className="bg-green-50 rounded-xl p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-green-600">Monthly Income</span>
+                      <span className="text-sm text-green-600">
+                        Monthly Income
+                      </span>
                       <div className="bg-green-100 p-1 rounded-full">
                         <ArrowUpRight className="w-4 h-4 text-green-600" />
                       </div>
@@ -113,7 +97,9 @@ const DashboardPage = () => {
 
                   <div className="bg-red-50 rounded-xl p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-red-600">Monthly Expenses</span>
+                      <span className="text-sm text-red-600">
+                        Monthly Expenses
+                      </span>
                       <div className="bg-red-100 p-1 rounded-full">
                         <ArrowDownRight className="w-4 h-4 text-red-600" />
                       </div>
@@ -152,11 +138,20 @@ const DashboardPage = () => {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-sm opacity-80">{userInfo.fullName}</p>
-                <p className="text-2xl font-bold mt-2">${userInfo.cardBalance}</p>
+                <p className="text-2xl font-bold mt-2">
+                  ${userInfo.cardBalance}
+                </p>
               </div>
               <div className="w-8 h-8">
                 <svg viewBox="0 0 24 24" fill="none" className="text-white">
-                  <path d="M2 8.5H22M6 16.5H8M10.5 16.5H12.5" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
+                  <path
+                    d="M2 8.5H22M6 16.5H8M10.5 16.5H12.5"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeMiterlimit="10"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               </div>
             </div>
@@ -178,7 +173,9 @@ const DashboardPage = () => {
               {notices.map((notice, index) => (
                 <div key={index} className="bg-blue-50 p-4 rounded-lg">
                   <p className="font-semibold text-blue-800">{notice.title}</p>
-                  <p className="text-sm text-blue-600 mt-1">{notice.description}</p>
+                  <p className="text-sm text-blue-600 mt-1">
+                    {notice.description}
+                  </p>
                 </div>
               ))}
             </div>
